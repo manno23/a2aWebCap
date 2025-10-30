@@ -1,0 +1,21 @@
+
+{
+  "$schema": "https://opencode.ai/config.json",
+  "theme": "github",
+  "mcpServers": {
+    "cloudflare-docs": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://docs.mcp.cloudflare.com/mcp"
+      ]
+    },
+    "cloudflare-workers-bindings": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://bindings.mcp.cloudflare.com/mcp"
+      ]
+    }
+  }
+}
