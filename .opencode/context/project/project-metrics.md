@@ -16,3 +16,6 @@
 - task: Configure HTTP and WebSocket endpoints
   agent: coder-agent
   timestamp: 2025-10-31T00:00:00Z
+- task: Add TLS certificates
+  agent: project-lead
+  timestamp: 2025-10-31T00:00:00Z
