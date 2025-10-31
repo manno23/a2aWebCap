@@ -11,7 +11,7 @@ This plan outlines the steps to implement the A2A protocol on top of the CapnWeb
 - [x] Set up authentication returning `AuthenticatedA2AService`
 - [x] Configure HTTP and WebSocket endpoints
 - [x] Add TLS certificates
-- [ ] Implement task state management
+- [x] Implement task state management
 - [ ] Create AgentCard with CAPNWEB transport
 - [ ] Add error handling and logging
 - [ ] Implement rate limiting

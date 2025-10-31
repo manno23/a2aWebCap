@@ -19,3 +19,6 @@
 - task: Add TLS certificates
   agent: project-lead
   timestamp: 2025-10-31T00:00:00Z
+- task: Implement task state management
+  agent: coder-agent
+  timestamp: 2025-10-31T00:00:00Z
