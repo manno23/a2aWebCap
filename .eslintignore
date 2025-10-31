@@ -1,0 +1,10 @@
+# Ignore the example directory from linting
+acp-server-example/
+
+# Ignore build output
+packages/*/dist
+
+# Ignore node_modules
+node_modules
+
+ts-server/

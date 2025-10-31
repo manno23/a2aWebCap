@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "lib": ["esnext"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "composite": true,
+    "types": ["bun-types"],
+    "moduleResolution": "nodenext"
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "acp-server-example"]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@a2a-webcap/client",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@a2a-webcap/shared": "workspace:*",
+    "capnweb": "^0.1.0"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist"
+  }
+}
