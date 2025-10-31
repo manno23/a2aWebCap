@@ -25,3 +25,6 @@
 - task: Create AgentCard with CAPNWEB transport
   agent: coder-agent
   timestamp: 2025-10-31T00:00:00Z
+- task: Add error handling and logging
+  agent: coder-agent
+  timestamp: 2025-10-31T00:00:00Z

@@ -13,7 +13,7 @@ This plan outlines the steps to implement the A2A protocol on top of the CapnWeb
 - [x] Add TLS certificates
 - [x] Implement task state management
 - [x] Create AgentCard with CAPNWEB transport
-- [ ] Add error handling and logging
+- [x] Add error handling and logging
 - [ ] Implement rate limiting
 - [ ] Add monitoring and metrics
 
