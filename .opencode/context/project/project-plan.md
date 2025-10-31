@@ -5,7 +5,7 @@ This plan outlines the steps to implement the A2A protocol on top of the CapnWeb
 ## B.1 Server Implementation
 
 - [x] Create `A2AService` class extending `RpcTarget`
-- [ ] Implement all A2A methods as RPC methods
+- [x] Implement all A2A methods as RPC methods
 - [ ] Create `StreamingTask` RpcTarget for streaming updates
 - [ ] Implement `TaskUpdateCallback` interface
 - [ ] Set up authentication returning `AuthenticatedA2AService`
