@@ -9,7 +9,7 @@ This plan outlines the steps to implement the A2A protocol on top of the CapnWeb
 - [x] Create `StreamingTask` RpcTarget for streaming updates
 - [x] Implement `TaskUpdateCallback` interface
 - [x] Set up authentication returning `AuthenticatedA2AService`
-- [ ] Configure HTTP and WebSocket endpoints
+- [x] Configure HTTP and WebSocket endpoints
 - [ ] Add TLS certificates
 - [ ] Implement task state management
 - [ ] Create AgentCard with CAPNWEB transport
