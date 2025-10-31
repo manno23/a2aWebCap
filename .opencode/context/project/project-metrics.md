@@ -10,3 +10,6 @@
 - task: Implement `TaskUpdateCallback` interface
   agent: coder-agent
   timestamp: 2025-10-31T00:00:00Z
+- task: Set up authentication returning `AuthenticatedA2AService`
+  agent: coder-agent
+  timestamp: 2025-10-31T00:00:00Z
