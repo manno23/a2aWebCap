@@ -4,24 +4,32 @@
   "workspaces": [
     "packages/*"
   ],
-  "packageManager": "bun@1.3.0",
   "scripts": {
-    "build": "./scripts/build.sh",
-    "test": "./scripts/test.sh",
+    "build": "npm run clean && npm install && npm run build:packages",
+    "build:packages": "npm run build -w packages/shared && npm run build -w packages/server && npm run build -w packages/client",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint . --ext .ts",
-    "clean": "sh scripts/clean.sh",
-    "demo:capnweb": "cd acp-server-example && bunx tsx session.ts"
+    "clean": "rm -rf packages/*/dist packages/*/node_modules node_modules",
+    "dev:server": "tsx packages/server/src/index.ts",
+    "demo:capnweb": "tsx acp-server-example/session.ts"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "eslint": "^8.57.0",
-    "@typescript-eslint/es-plugin": "^7.1.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
     "@typescript-eslint/parser": "^7.1.0",
-    "bun-types": "latest",
-    "tsx": "^4.20.6"
+    "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/ui": "^1.0.0",
+    "eslint": "^8.57.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
   },
   "dependencies": {
     "capnweb": "^0.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
-}
 }

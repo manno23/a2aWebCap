@@ -2,12 +2,19 @@
   "name": "@a2a-webcap/client",
   "version": "0.1.0",
   "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc --project tsconfig.json"
+  },
   "dependencies": {
     "@a2a-webcap/shared": "workspace:*",
     "capnweb": "^0.1.0"
   },
-  "scripts": {
-    "start": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir dist"
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "tsx": "^4.20.6"
   }
 }
