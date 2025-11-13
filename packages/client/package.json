@@ -9,12 +9,14 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@a2a-webcap/shared": "workspace:*",
-    "capnweb": "^0.1.0"
+    "@a2a-webcap/shared": "file:../shared",
+    "capnweb": "^0.1.0",
+    "ws": "^8.14.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0",
-    "tsx": "^4.20.6"
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.0.0"
   }
 }
