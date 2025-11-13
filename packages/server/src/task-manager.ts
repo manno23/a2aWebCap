@@ -13,6 +13,7 @@ import type {
   Message,
   TaskStatus,
   Artifact,
+  ToolCall,
   ListTasksParams,
   ListTasksResult,
   A2AError,
@@ -312,6 +313,67 @@ export class TaskManager extends EventEmitter {
   clearAllTasks(): void {
     this.tasks.clear();
     this.removeAllListeners();
+  }
+
+  /**
+   * Add a tool call to a task
+   *
+   * @param taskId - Task ID
+   * @param toolCall - Tool call to add
+   */
+  async addToolCall(taskId: string, toolCall: ToolCall): Promise<void> {
+    const task = this.tasks.get(taskId);
+
+    if (!task) {
+      throw this.createError(
+        `Task not found: ${taskId}`,
+        'TASK_NOT_FOUND' as A2AErrorCode
+      );
+    }
+
+    if (!task.toolCalls) {
+      task.toolCalls = [];
+    }
+
+    task.toolCalls.push(toolCall);
+  }
+
+  /**
+   * Update a tool call in a task
+   *
+   * @param taskId - Task ID
+   * @param callId - Tool call ID
+   * @param updatedToolCall - Updated tool call
+   */
+  async updateToolCall(taskId: string, callId: string, updatedToolCall: ToolCall): Promise<void> {
+    const task = this.tasks.get(taskId);
+
+    if (!task) {
+      throw this.createError(
+        `Task not found: ${taskId}`,
+        'TASK_NOT_FOUND' as A2AErrorCode
+      );
+    }
+
+    if (!task.toolCalls) {
+      return;
+    }
+
+    const index = task.toolCalls.findIndex(tc => tc.callId === callId);
+    if (index >= 0) {
+      task.toolCalls[index] = updatedToolCall;
+    }
+  }
+
+  /**
+   * Get tool calls for a task
+   *
+   * @param taskId - Task ID
+   * @returns Array of tool calls for the task
+   */
+  getToolCalls(taskId: string): ToolCall[] {
+    const task = this.tasks.get(taskId);
+    return task?.toolCalls || [];
   }
 
   /**

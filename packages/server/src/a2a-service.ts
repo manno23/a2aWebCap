@@ -10,6 +10,9 @@ import pino from 'pino';
 import { TaskManager } from './task-manager';
 import { StreamingTask } from './streaming-task';
 import type { TaskUpdateCallback } from './task-update-callback';
+import { ToolExecutor } from './tool-executor';
+import { ToolRegistry } from './tool-registry';
+import type { ToolApproval } from './tool-executor';
 import { TaskState } from '@a2a-webcap/shared';
 import type {
   Message,
@@ -18,7 +21,8 @@ import type {
   MessageSendConfig,
   ListTasksParams,
   ListTasksResult,
-  AuthCredentials
+  AuthCredentials,
+  ToolCall
 } from '@a2a-webcap/shared';
 
 const log = pino({ name: 'a2a-service' });
@@ -36,11 +40,13 @@ export interface A2AServiceConfig {
  */
 export class A2AService extends RpcTarget {
   private taskManager: TaskManager;
+  private toolExecutor: ToolExecutor;
   private config: A2AServiceConfig;
 
   constructor(config: A2AServiceConfig = {}) {
     super();
     this.taskManager = new TaskManager();
+    this.toolExecutor = new ToolExecutor();
     this.config = {
       agentName: config.agentName || 'A2A CapnWeb Server',
       agentDescription: config.agentDescription || 'A2A server using capnweb transport',
@@ -49,6 +55,71 @@ export class A2AService extends RpcTarget {
     };
 
     log.info({ config: this.config }, 'A2AService initialized');
+
+    // Setup tool execution event handlers
+    this.setupToolExecutionHandlers();
+  }
+
+  /**
+   * Setup event handlers for tool execution
+   */
+  private setupToolExecutionHandlers(): void {
+    // When a tool needs approval, transition task to InputRequired state
+    this.toolExecutor.on('tool:needsApproval', async (event) => {
+      log.info({
+        taskId: event.taskId,
+        callId: event.callId,
+        toolName: event.toolName
+      }, 'Tool needs approval');
+
+      try {
+        await this.taskManager.updateTaskStatus(
+          event.taskId,
+          TaskState.InputRequired
+        );
+      } catch (err: any) {
+        log.error({
+          taskId: event.taskId,
+          error: err.message
+        }, 'Failed to update task status for approval');
+      }
+    });
+
+    // When tool status changes, sync with task
+    this.toolExecutor.on('tool:statusChange', async (event) => {
+      log.info({
+        taskId: event.taskId,
+        callId: event.callId,
+        status: event.status
+      }, 'Tool status changed');
+
+      try {
+        const toolCall = this.toolExecutor.getToolCall(event.callId);
+        if (toolCall) {
+          await this.taskManager.updateToolCall(event.taskId, event.callId, toolCall);
+        }
+
+        // If tool execution completed and no more pending approvals,
+        // transition back to Working state
+        if (event.status === 'success' || event.status === 'error' || event.status === 'cancelled') {
+          const pendingApprovals = this.toolExecutor.getPendingApprovals(event.taskId);
+          if (pendingApprovals.length === 0) {
+            const task = await this.taskManager.getTask(event.taskId);
+            if (task.status.state === TaskState.InputRequired) {
+              await this.taskManager.updateTaskStatus(
+                event.taskId,
+                TaskState.Working
+              );
+            }
+          }
+        }
+      } catch (err: any) {
+        log.error({
+          taskId: event.taskId,
+          error: err.message
+        }, 'Failed to handle tool status change');
+      }
+    });
   }
 
   /**
@@ -255,6 +326,81 @@ export class A2AService extends RpcTarget {
         transport: 'capnweb'
       }
     };
+  }
+
+  /**
+   * Execute a tool in the context of a task
+   *
+   * @param taskId - Task ID to execute tool in
+   * @param toolName - Name of tool to execute
+   * @param input - Tool input parameters
+   * @returns Tool call object
+   */
+  async executeTool(
+    taskId: string,
+    toolName: string,
+    input?: Record<string, any>
+  ): Promise<ToolCall> {
+    log.info({ taskId, toolName }, 'executeTool called');
+
+    try {
+      // Verify task exists
+      await this.taskManager.getTask(taskId);
+
+      // Execute tool
+      const toolCall = await this.toolExecutor.executeTool(taskId, toolName, input);
+
+      // Add tool call to task
+      await this.taskManager.addToolCall(taskId, toolCall);
+
+      return toolCall;
+    } catch (error) {
+      log.error({ error, taskId, toolName }, 'executeTool error');
+      throw error;
+    }
+  }
+
+  /**
+   * Approve or reject a pending tool call
+   *
+   * @param approval - Approval decision
+   */
+  async approveToolCall(approval: ToolApproval): Promise<void> {
+    log.info({
+      callId: approval.callId,
+      approved: approval.approved
+    }, 'approveToolCall called');
+
+    try {
+      await this.toolExecutor.approveToolCall(approval);
+    } catch (error) {
+      log.error({ error, callId: approval.callId }, 'approveToolCall error');
+      throw error;
+    }
+  }
+
+  /**
+   * List available tools
+   *
+   * @returns Array of available tool definitions
+   */
+  listTools(): Array<{name: string; description: string; requiresApproval: boolean}> {
+    const tools = this.toolExecutor.getRegistry().listTools();
+    return tools.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      requiresApproval: tool.requiresApproval
+    }));
+  }
+
+  /**
+   * Get pending tool approvals for a task
+   *
+   * @param taskId - Task ID
+   * @returns Array of pending tool calls
+   */
+  getPendingApprovals(taskId: string): ToolCall[] {
+    return this.toolExecutor.getPendingApprovals(taskId);
   }
 
   /**
