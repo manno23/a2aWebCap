@@ -1,22 +1,26 @@
 {
   "compilerOptions": {
-    "target": "esnext",
-    "module": "esnext",
-    "lib": ["esnext"],
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
     "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "composite": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
     "paths": {
       "@a2a-webcap/shared": ["../shared/src"]
-    },
-    "types": ["bun-types"],
-    "moduleResolution": "nodenext"
+    }
   },
-  "include": ["src", "build.ts"],
-  "exclude": ["node_modules", "dist", "acp-server-example"],
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "tests"],
   "references": [{ "path": "../shared" }]
 }
