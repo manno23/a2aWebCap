@@ -48,7 +48,7 @@ export class A2AService extends RpcTarget {
       protocolVersion: config.protocolVersion || '0.4.0'
     };
 
-    log.info('A2AService initialized', { config: this.config });
+    log.info({ config: this.config }, 'A2AService initialized');
   }
 
   /**
@@ -65,11 +65,11 @@ export class A2AService extends RpcTarget {
     message: Message,
     config?: MessageSendConfig
   ): Promise<Task | Message> {
-    log.info('sendMessage called', {
+    log.info({
       messageId: message.messageId,
       role: message.role,
       hasTaskId: !!message.taskId
-    });
+    }, 'sendMessage called');
 
     try {
       // If message has taskId, continue existing task
@@ -90,13 +90,13 @@ export class A2AService extends RpcTarget {
 
       // Process the message asynchronously
       this.processMessage(task.id, message).catch(err => {
-        log.error('Error processing message', { error: err, taskId: task.id });
+        log.error({ error: err, taskId: task.id }, 'Error processing message');
         this.taskManager.updateTaskStatus(task.id, TaskState.Failed).catch(() => {});
       });
 
       return task;
     } catch (error) {
-      log.error('sendMessage error', { error });
+      log.error({ error }, 'sendMessage error');
       throw error;
     }
   }
@@ -117,11 +117,11 @@ export class A2AService extends RpcTarget {
     config?: MessageSendConfig,
     callback?: TaskUpdateCallback
   ): Promise<StreamingTask> {
-    log.info('sendMessageStreaming called', {
+    log.info({
       messageId: message.messageId,
       role: message.role,
       hasCallback: !!callback
-    });
+    }, 'sendMessageStreaming called');
 
     try {
       // Create task
@@ -137,13 +137,13 @@ export class A2AService extends RpcTarget {
 
       // Process message asynchronously
       this.processMessage(task.id, message).catch(err => {
-        log.error('Error processing message', { error: err, taskId: task.id });
+        log.error({ error: err, taskId: task.id }, 'Error processing message');
         this.taskManager.updateTaskStatus(task.id, TaskState.Failed).catch(() => {});
       });
 
       return streamingTask;
     } catch (error) {
-      log.error('sendMessageStreaming error', { error });
+      log.error({ error }, 'sendMessageStreaming error');
       throw error;
     }
   }
@@ -159,12 +159,12 @@ export class A2AService extends RpcTarget {
    * @returns Task
    */
   async getTask(taskId: string, historyLength?: number): Promise<Task> {
-    log.info('getTask called', { taskId, historyLength });
+    log.info({ taskId, historyLength }, 'getTask called');
 
     try {
       return await this.taskManager.getTask(taskId, historyLength);
     } catch (error) {
-      log.error('getTask error', { error, taskId });
+      log.error({ error, taskId }, 'getTask error');
       throw error;
     }
   }
@@ -179,12 +179,12 @@ export class A2AService extends RpcTarget {
    * @returns List of tasks
    */
   async listTasks(params: ListTasksParams): Promise<ListTasksResult> {
-    log.info('listTasks called', { params });
+    log.info({ params }, 'listTasks called');
 
     try {
       return await this.taskManager.listTasks(params);
     } catch (error) {
-      log.error('listTasks error', { error });
+      log.error({ error, params }, 'listTasks error');
       throw error;
     }
   }
@@ -199,12 +199,12 @@ export class A2AService extends RpcTarget {
    * @returns Canceled task
    */
   async cancelTask(taskId: string): Promise<Task> {
-    log.info('cancelTask called', { taskId });
+    log.info({ taskId }, 'cancelTask called');
 
     try {
       return await this.taskManager.cancelTask(taskId);
     } catch (error) {
-      log.error('cancelTask error', { error, taskId });
+      log.error({ error, taskId }, 'cancelTask error');
       throw error;
     }
   }
@@ -267,7 +267,7 @@ export class A2AService extends RpcTarget {
    * @returns Authenticated service (stub with user context)
    */
   async authenticate(credentials: AuthCredentials): Promise<AuthenticatedA2AService> {
-    log.info('authenticate called', { type: credentials.type });
+    log.info({ hasToken: !!credentials.token }, 'authenticate called');
 
     // ⚠️ SECURITY WARNING: This is a STUB implementation for Phase 1 MVP ONLY
     // DO NOT USE THIS IN PRODUCTION - it accepts ANY non-empty token!
@@ -288,7 +288,7 @@ export class A2AService extends RpcTarget {
     // Return authenticated service with user context
     const userId = 'user-' + credentials.token.substring(0, 8);
 
-    log.info('Authentication successful', { userId });
+    log.info({ userId }, 'Authentication successful');
 
     return new AuthenticatedA2AService(
       this.taskManager,
@@ -310,15 +310,15 @@ export class A2AService extends RpcTarget {
    * For MVP, we just echo back with a simple response
    */
   private async processMessage(taskId: string, message: Message): Promise<void> {
-    log.info('Processing message', { taskId, messageId: message.messageId });
+    log.info({ taskId, messageId: message.messageId }, 'Processing message');
 
     // Simulate some processing time
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Extract text from message parts
     const textParts = message.parts
-      .filter(p => p.kind === 'text')
-      .map(p => (p as any).text)
+      .filter((p): p is { kind: 'text'; text: string } => p.kind === 'text')
+      .map(p => p.text)
       .join(' ');
 
     // Create a simple echo response
@@ -343,7 +343,7 @@ export class A2AService extends RpcTarget {
     // Mark task as completed
     await this.taskManager.updateTaskStatus(taskId, TaskState.Completed, responseMessage);
 
-    log.info('Message processing complete', { taskId });
+    log.info({ taskId }, 'Message processing completed');
   }
 
   /**
@@ -369,14 +369,14 @@ export class AuthenticatedA2AService extends RpcTarget {
     private permissions: string[]
   ) {
     super();
-    log.info('AuthenticatedA2AService created', { userId, permissions });
+    log.info({ userId, permissions }, 'AuthenticatedA2AService created');
   }
 
   /**
    * Send message with automatic user context
    */
   async sendMessage(message: Message, config?: MessageSendConfig): Promise<Task | Message> {
-    log.info('Authenticated sendMessage', { userId: this.userId, messageId: message.messageId });
+    log.info({ userId: this.userId, messageId: message.messageId }, 'Authenticated sendMessage');
 
     // Add user context to metadata
     const enrichedConfig = {

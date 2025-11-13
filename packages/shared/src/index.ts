@@ -7,10 +7,10 @@
 export * from './a2a-types';
 
 // Export capnweb RPC primitives
-export { RpcTarget, RpcStub } from 'capnweb';
+// export { RpcTarget, RpcStub } from 'capnweb';
 
 // WebSocket session creators
-export {
-  newWebSocketRpcSession,
-  newMessagePortRpcSession
-} from 'capnweb';
+// export {
+//   newWebSocketRpcSession,
+//   newMessagePortRpcSession
+// } from 'capnweb';

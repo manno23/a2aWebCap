@@ -35,7 +35,7 @@ export class StreamingTask extends RpcTarget {
     private taskManager: TaskManager
   ) {
     super();
-    log.info('StreamingTask created', { taskId: task.id });
+    log.info({ taskId: task.id }, 'StreamingTask created');
     // Don't start monitoring immediately to avoid race condition where
     // early task updates could be missed before callbacks subscribe
   }
@@ -46,7 +46,7 @@ export class StreamingTask extends RpcTarget {
    * @param callback - TaskUpdateCallback implementation
    */
   async subscribe(callback: TaskUpdateCallback): Promise<void> {
-    log.info('Callback subscribed', { taskId: this.task.id });
+    log.info({ taskId: this.task.id }, 'Callback subscribed');
     this.callbacks.add(callback);
 
     // Start monitoring on first subscription to avoid race condition
@@ -78,10 +78,7 @@ export class StreamingTask extends RpcTarget {
    */
   unsubscribeCallback(callback: TaskUpdateCallback): void {
     this.callbacks.delete(callback);
-    log.info('Callback unsubscribed', {
-      taskId: this.task.id,
-      remainingCallbacks: this.callbacks.size
-    });
+    log.info({ taskId: this.task.id, remainingCallbacks: this.callbacks.size }, 'Callback unsubscribed');
   }
 
   /**
@@ -122,10 +119,10 @@ export class StreamingTask extends RpcTarget {
     this.unsubscribeHandler = this.taskManager.onTaskUpdate(
       this.task.id,
       async (event: TaskUpdateEvent) => {
-        log.debug('Task update received', {
+        log.debug({
           taskId: event.taskId,
           state: event.status.state
-        });
+        }, 'Task update');
 
         // Check if this is a final state
         const isFinal = this.isFinalTaskState(event.status.state);
@@ -159,10 +156,7 @@ export class StreamingTask extends RpcTarget {
 
     // Set up timeout to prevent memory leaks from tasks that never complete
     this.timeoutHandle = setTimeout(() => {
-      log.warn('Task monitoring timeout reached - forcing cleanup', {
-        taskId: this.task.id,
-        timeoutMs: this.MONITORING_TIMEOUT_MS
-      });
+      log.warn({ taskId: this.task.id, timeoutMs: this.MONITORING_TIMEOUT_MS }, 'Task monitoring timeout reached - forcing cleanup');
       this.stopMonitoring();
     }, this.MONITORING_TIMEOUT_MS);
   }
@@ -174,7 +168,7 @@ export class StreamingTask extends RpcTarget {
     if (this.unsubscribeHandler) {
       this.unsubscribeHandler();
       this.unsubscribeHandler = undefined;
-      log.info('Stopped monitoring task', { taskId: this.task.id });
+      log.info({ taskId: this.task.id }, 'Stopped monitoring task');
     }
 
     // Clear timeout to prevent memory leak
@@ -194,10 +188,7 @@ export class StreamingTask extends RpcTarget {
       try {
         await callback.onStatusUpdate(event);
       } catch (error) {
-        log.error('Callback error in onStatusUpdate', {
-          error,
-          taskId: event.taskId
-        });
+        log.error({ error, taskId: event.taskId }, 'Callback error in onStatusUpdate');
         failedCallbacks.push(callback);
       }
     }
@@ -218,10 +209,7 @@ export class StreamingTask extends RpcTarget {
       try {
         await callback.onArtifactUpdate(event);
       } catch (error) {
-        log.error('Callback error in onArtifactUpdate', {
-          error,
-          taskId: event.taskId
-        });
+        log.error({ error, taskId: event.taskId }, 'Callback error in onArtifactUpdate');
         failedCallbacks.push(callback);
       }
     }
@@ -236,7 +224,7 @@ export class StreamingTask extends RpcTarget {
    * Cleanup when disposing
    */
   dispose(): void {
-    log.info('StreamingTask disposed', { taskId: this.task.id });
+    log.info({ taskId: this.task.id }, 'StreamingTask disposed');
     this.stopMonitoring();
     this.callbacks.clear();
   }
