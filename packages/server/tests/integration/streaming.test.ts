@@ -171,8 +171,16 @@ describe('Streaming Integration', () => {
 
       const streamingTask = await service.sendMessageStreaming(message);
 
-      // Get task immediately
-      const task1 = await streamingTask.getTask();
+      // Get task - may be 'submitted' or 'working' due to async processing
+      // Retry until we see 'working' state
+      let task1 = await streamingTask.getTask();
+      const maxRetries = 10;
+      let retries = 0;
+      while (task1.status.state === 'submitted' && retries < maxRetries) {
+        await wait(20);
+        task1 = await streamingTask.getTask();
+        retries++;
+      }
       expect(task1.status.state).toBe('working');
 
       // Wait for completion

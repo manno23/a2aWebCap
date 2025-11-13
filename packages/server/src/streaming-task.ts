@@ -26,6 +26,9 @@ export class StreamingTask extends RpcTarget {
   private callbacks = new Set<TaskUpdateCallback>();
   private unsubscribeHandler?: () => void;
   private isFinal = false;
+  private monitoringStarted = false;
+  private timeoutHandle?: NodeJS.Timeout;
+  private readonly MONITORING_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
 
   constructor(
     private task: Task,
@@ -33,7 +36,8 @@ export class StreamingTask extends RpcTarget {
   ) {
     super();
     log.info('StreamingTask created', { taskId: task.id });
-    this.startMonitoring();
+    // Don't start monitoring immediately to avoid race condition where
+    // early task updates could be missed before callbacks subscribe
   }
 
   /**
@@ -45,13 +49,25 @@ export class StreamingTask extends RpcTarget {
     log.info('Callback subscribed', { taskId: this.task.id });
     this.callbacks.add(callback);
 
-    // Send current task state immediately
+    // Start monitoring on first subscription to avoid race condition
+    if (!this.monitoringStarted) {
+      this.startMonitoring();
+      this.monitoringStarted = true;
+    }
+
+    // Fetch fresh task state from TaskManager to avoid sending stale cached state
+    const currentTask = await this.taskManager.getTask(this.task.id);
+
+    // Check if task is already in final state (for late subscribers)
+    const isFinal = this.isFinalTaskState(currentTask.status.state);
+
+    // Send current task state immediately with correct final flag
     await this.sendStatusUpdate({
       type: 'status',
-      taskId: this.task.id,
-      contextId: this.task.contextId,
-      status: this.task.status,
-      final: false
+      taskId: currentTask.id,
+      contextId: currentTask.contextId,
+      status: currentTask.status,
+      final: isFinal
     });
   }
 
@@ -83,6 +99,23 @@ export class StreamingTask extends RpcTarget {
   }
 
   /**
+   * Check if a task state is a final state
+   *
+   * Final states are: Completed, Canceled, Failed, Rejected
+   * Note: InputRequired and AuthRequired are NOT final states - they indicate
+   * the task is waiting for input/auth and can continue after receiving it.
+   */
+  private isFinalTaskState(state: TaskState): boolean {
+    const finalStates = [
+      TaskState.Completed,
+      TaskState.Canceled,
+      TaskState.Failed,
+      TaskState.Rejected
+    ];
+    return finalStates.includes(state);
+  }
+
+  /**
    * Start monitoring task updates from TaskManager
    */
   private startMonitoring(): void {
@@ -95,13 +128,7 @@ export class StreamingTask extends RpcTarget {
         });
 
         // Check if this is a final state
-        const finalStates = [
-          TaskState.Completed,
-          TaskState.Canceled,
-          TaskState.Failed,
-          TaskState.Rejected
-        ];
-        const isFinal = finalStates.includes(event.status.state);
+        const isFinal = this.isFinalTaskState(event.status.state);
 
         // Send status update
         await this.sendStatusUpdate({
@@ -129,6 +156,15 @@ export class StreamingTask extends RpcTarget {
         }
       }
     );
+
+    // Set up timeout to prevent memory leaks from tasks that never complete
+    this.timeoutHandle = setTimeout(() => {
+      log.warn('Task monitoring timeout reached - forcing cleanup', {
+        taskId: this.task.id,
+        timeoutMs: this.MONITORING_TIMEOUT_MS
+      });
+      this.stopMonitoring();
+    }, this.MONITORING_TIMEOUT_MS);
   }
 
   /**
@@ -139,6 +175,12 @@ export class StreamingTask extends RpcTarget {
       this.unsubscribeHandler();
       this.unsubscribeHandler = undefined;
       log.info('Stopped monitoring task', { taskId: this.task.id });
+    }
+
+    // Clear timeout to prevent memory leak
+    if (this.timeoutHandle) {
+      clearTimeout(this.timeoutHandle);
+      this.timeoutHandle = undefined;
     }
   }
 
