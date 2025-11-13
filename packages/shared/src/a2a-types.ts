@@ -41,6 +41,36 @@ export interface DataPart {
 }
 
 // ============================================================================
+// Tool Types
+// ============================================================================
+
+export interface ToolCall {
+  callId: string;
+  name: string;
+  input?: Record<string, any>;
+  status: ToolStatus;
+  result?: any;
+  error?: string;
+  timestamp?: string;
+}
+
+export type ToolStatus =
+  | 'validating'
+  | 'scheduled'
+  | 'awaiting-approval'
+  | 'executing'
+  | 'success'
+  | 'error'
+  | 'cancelled';
+
+export interface ToolResult {
+  callId: string;
+  success: boolean;
+  result?: any;
+  error?: string;
+}
+
+// ============================================================================
 // Task Types
 // ============================================================================
 
@@ -50,6 +80,7 @@ export interface Task {
   status: TaskStatus;
   history?: Message[];
   artifacts?: Artifact[];
+  toolCalls?: ToolCall[];
   metadata?: Record<string, any>;
   kind: 'task';
 }
