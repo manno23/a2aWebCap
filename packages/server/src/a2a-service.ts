@@ -8,6 +8,8 @@
 import { RpcTarget } from 'capnweb';
 import pino from 'pino';
 import { TaskManager } from './task-manager';
+import { StreamingTask } from './streaming-task';
+import type { TaskUpdateCallback } from './task-update-callback';
 import { TaskState } from '@a2a-webcap/shared';
 import type {
   Message,
@@ -95,6 +97,53 @@ export class A2AService extends RpcTarget {
       return task;
     } catch (error) {
       log.error('sendMessage error', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Send a message with streaming updates
+   *
+   * Implements: message/send with streaming (A2A Protocol)
+   * Maps to: Returns StreamingTask RpcTarget for bidirectional updates
+   *
+   * @param message - Message to send
+   * @param config - Optional configuration
+   * @param callback - Optional callback for push notifications
+   * @returns StreamingTask that client can subscribe to
+   */
+  async sendMessageStreaming(
+    message: Message,
+    config?: MessageSendConfig,
+    callback?: TaskUpdateCallback
+  ): Promise<StreamingTask> {
+    log.info('sendMessageStreaming called', {
+      messageId: message.messageId,
+      role: message.role,
+      hasCallback: !!callback
+    });
+
+    try {
+      // Create task
+      const task = await this.taskManager.createTask(message, config?.metadata);
+
+      // Create streaming task
+      const streamingTask = new StreamingTask(task, this.taskManager);
+
+      // Register callback if provided
+      if (callback) {
+        await streamingTask.subscribe(callback);
+      }
+
+      // Process message asynchronously
+      this.processMessage(task.id, message).catch(err => {
+        log.error('Error processing message', { error: err, taskId: task.id });
+        this.taskManager.updateTaskStatus(task.id, TaskState.Failed).catch(() => {});
+      });
+
+      return streamingTask;
+    } catch (error) {
+      log.error('sendMessageStreaming error', { error });
       throw error;
     }
   }
