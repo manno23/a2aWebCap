@@ -51,7 +51,7 @@ export class ToolRegistry {
       throw new Error(`Tool '${definition.name}' is already registered`);
     }
 
-    log.info('Tool registered', { name: definition.name });
+    log.info({ name: definition.name }, 'Tool registered');
     this.tools.set(definition.name, definition);
   }
 

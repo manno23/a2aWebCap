@@ -66,11 +66,11 @@ export class A2AService extends RpcTarget {
   private setupToolExecutionHandlers(): void {
     // When a tool needs approval, transition task to InputRequired state
     this.toolExecutor.on('tool:needsApproval', async (event) => {
-      log.info('Tool needs approval', {
+      log.info({
         taskId: event.taskId,
         callId: event.callId,
         toolName: event.toolName
-      });
+      }, 'Tool needs approval');
 
       try {
         await this.taskManager.updateTaskStatus(
@@ -78,20 +78,20 @@ export class A2AService extends RpcTarget {
           TaskState.InputRequired
         );
       } catch (err: any) {
-        log.error('Failed to update task status for approval', {
+        log.error({
           taskId: event.taskId,
           error: err.message
-        });
+        }, 'Failed to update task status for approval');
       }
     });
 
     // When tool status changes, sync with task
     this.toolExecutor.on('tool:statusChange', async (event) => {
-      log.info('Tool status changed', {
+      log.info({
         taskId: event.taskId,
         callId: event.callId,
         status: event.status
-      });
+      }, 'Tool status changed');
 
       try {
         const toolCall = this.toolExecutor.getToolCall(event.callId);
@@ -114,10 +114,10 @@ export class A2AService extends RpcTarget {
           }
         }
       } catch (err: any) {
-        log.error('Failed to handle tool status change', {
+        log.error({
           taskId: event.taskId,
           error: err.message
-        });
+        }, 'Failed to handle tool status change');
       }
     });
   }
@@ -341,7 +341,7 @@ export class A2AService extends RpcTarget {
     toolName: string,
     input?: Record<string, any>
   ): Promise<ToolCall> {
-    log.info('executeTool called', { taskId, toolName });
+    log.info({ taskId, toolName }, 'executeTool called');
 
     try {
       // Verify task exists
@@ -355,7 +355,7 @@ export class A2AService extends RpcTarget {
 
       return toolCall;
     } catch (error) {
-      log.error('executeTool error', { error, taskId, toolName });
+      log.error({ error, taskId, toolName }, 'executeTool error');
       throw error;
     }
   }
@@ -366,15 +366,15 @@ export class A2AService extends RpcTarget {
    * @param approval - Approval decision
    */
   async approveToolCall(approval: ToolApproval): Promise<void> {
-    log.info('approveToolCall called', {
+    log.info({
       callId: approval.callId,
       approved: approval.approved
-    });
+    }, 'approveToolCall called');
 
     try {
       await this.toolExecutor.approveToolCall(approval);
     } catch (error) {
-      log.error('approveToolCall error', { error, callId: approval.callId });
+      log.error({ error, callId: approval.callId }, 'approveToolCall error');
       throw error;
     }
   }

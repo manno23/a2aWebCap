@@ -71,7 +71,7 @@ export class ToolExecutor extends EventEmitter {
     const callId = randomUUID();
     const timestamp = new Date().toISOString();
 
-    log.info('Tool execution requested', { taskId, callId, toolName });
+    log.info({ taskId, callId, toolName }, 'Tool execution requested');
 
     // Create initial tool call in 'validating' status
     const toolCall: ToolCall = {
@@ -92,7 +92,7 @@ export class ToolExecutor extends EventEmitter {
 
     // Start async execution
     this.processToolCall(taskId, toolCall).catch(err => {
-      log.error('Tool execution error', { taskId, callId, error: err.message });
+      log.error({ taskId, callId, error: err.message }, 'Tool execution error');
     });
 
     return toolCall;
@@ -108,10 +108,10 @@ export class ToolExecutor extends EventEmitter {
       throw new Error(`No pending approval for call ${approval.callId}`);
     }
 
-    log.info('Tool approval decision received', {
+    log.info({
       callId: approval.callId,
       approved: approval.approved
-    });
+    }, 'Tool approval decision received');
 
     if (approval.approved) {
       // Resume execution
@@ -122,10 +122,10 @@ export class ToolExecutor extends EventEmitter {
       const tool = this.registry.getTool(toolCall.name);
       if (tool) {
         this.executeToolDefinition(toolCall, tool).catch(err => {
-          log.error('Tool execution failed after approval', {
+          log.error({
             callId: approval.callId,
             error: err.message
-          });
+          }, 'Tool execution failed after approval');
         });
       }
     } else {
@@ -219,16 +219,16 @@ export class ToolExecutor extends EventEmitter {
    */
   private async executeToolDefinition(toolCall: ToolCall, tool: ToolDefinition): Promise<void> {
     try {
-      log.info('Executing tool', { callId: toolCall.callId, name: tool.name });
+      log.info({callId: toolCall.callId, name: tool.name }, 'Executing tool');
 
       const result = await tool.execute(toolCall.input || {});
 
       await this.updateToolStatus(toolCall, 'success', result);
     } catch (error: any) {
-      log.error('Tool execution failed', {
+      log.error({
         callId: toolCall.callId,
         error: error.message
-      });
+      }, 'Tool execution failed');
 
       await this.updateToolStatus(toolCall, 'error', undefined, error.message);
     }
@@ -251,12 +251,12 @@ export class ToolExecutor extends EventEmitter {
       toolCall.error = error;
     }
 
-    log.info('Tool status updated', {
+    log.info({
       callId: toolCall.callId,
       status,
       hasResult: result !== undefined,
       hasError: error !== undefined
-    });
+    }, 'Tool status updated');
 
     // Emit status change event
     this.emit('tool:statusChange', {
