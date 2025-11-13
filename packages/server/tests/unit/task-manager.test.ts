@@ -125,7 +125,7 @@ describe('TaskManager', () => {
 
     it('should filter by task state', async () => {
       const task1 = await taskManager.createTask(createTestMessage('Task 1'));
-      const task2 = await taskManager.createTask(createTestMessage('Task 2'));
+      await taskManager.createTask(createTestMessage('Task 2'));
       await taskManager.updateTaskStatus(task1.id, 'completed');
 
       const result = await taskManager.listTasks({

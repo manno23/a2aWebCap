@@ -17,6 +17,9 @@ import { A2AService } from '../../src/a2a-service';
 import { A2AClient } from '../../../client/src/index';
 import { wait } from '../utils';
 
+// Time to wait for async task processing
+const PROCESSING_DELAY_MS = 200;
+
 describe('End-to-End: Basic A2A Flow', () => {
   let server: ReturnType<typeof createServer>;
   let wss: WebSocketServer;
@@ -149,7 +152,7 @@ describe('End-to-End: Basic A2A Flow', () => {
     const taskId = (task as any).id;
 
     // Step 2: Wait for processing
-    await wait(200);
+    await wait(PROCESSING_DELAY_MS);
 
     // Step 3: Retrieve task status
     const updatedTask = await client.getTask(taskId);
@@ -222,7 +225,7 @@ describe('End-to-End: Basic A2A Flow', () => {
     const taskId = (task as any).id;
 
     // Wait for processing
-    await wait(200);
+    await wait(PROCESSING_DELAY_MS);
 
     // Get full history
     const fullTask = await client.getTask(taskId);
@@ -250,7 +253,7 @@ describe('End-to-End: Basic A2A Flow', () => {
     expect((task as any).contextId).toBe(contextId);
 
     // Verify context is maintained
-    await wait(200);
+    await wait(PROCESSING_DELAY_MS);
     const retrieved = await client.getTask((task as any).id);
     expect(retrieved.contextId).toBe(contextId);
   });

@@ -96,11 +96,20 @@ wss.on('connection', (ws, req) => {
     remoteAddress: req.socket.remoteAddress
   });
 
-  // TODO: Initialize capnweb RPC session here
-  // Note: capnweb's WebSocket adapter needs to be implemented
-  // For now, we'll use a simple message-based protocol
+  // TODO: Replace simple JSON-RPC with proper capnweb RPC session once WebSocket adapter is ready
+  // Current implementation uses basic JSON-RPC for MVP (Phase 1)
+  // Phase 2 will integrate full capnweb transport layer
 
   ws.on('message', async (data) => {
+    // Parse request ID early for error handling
+    const requestId = (() => {
+      try {
+        return JSON.parse(data.toString()).id;
+      } catch {
+        return undefined;
+      }
+    })();
+
     try {
       const request = JSON.parse(data.toString());
       log.debug('RPC request', { method: request.method });
@@ -148,7 +157,7 @@ wss.on('connection', (ws, req) => {
       log.error('RPC error', { error: error.message });
 
       ws.send(JSON.stringify({
-        id: (data as any).id,
+        id: requestId,
         error: {
           code: error.code || 'INTERNAL_ERROR',
           message: error.message

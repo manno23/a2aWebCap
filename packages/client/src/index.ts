@@ -60,7 +60,7 @@ export class A2AClient {
 
       this.ws.on('close', () => {
         // Reject all pending requests
-        for (const [id, request] of this.pendingRequests.entries()) {
+        for (const request of this.pendingRequests.values()) {
           clearTimeout(request.timer);
           request.reject(new Error('Connection closed'));
         }

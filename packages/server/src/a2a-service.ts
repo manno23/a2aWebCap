@@ -220,8 +220,18 @@ export class A2AService extends RpcTarget {
   async authenticate(credentials: AuthCredentials): Promise<AuthenticatedA2AService> {
     log.info('authenticate called', { type: credentials.type });
 
-    // Stub authentication - in production, validate credentials
-    // against actual auth service (database, OAuth, etc.)
+    // ⚠️ SECURITY WARNING: This is a STUB implementation for Phase 1 MVP ONLY
+    // DO NOT USE THIS IN PRODUCTION - it accepts ANY non-empty token!
+    //
+    // For production, implement proper authentication:
+    // - Validate against actual auth service (OAuth2, JWT, API keys)
+    // - Verify token signature and expiry
+    // - Check against user database
+    // - Implement rate limiting
+    // - Add audit logging
+    // - Use secure credential storage
+    //
+    // Phase 3 will implement capability-based security model
     if (!credentials.token || credentials.token.length === 0) {
       throw new Error('Invalid credentials');
     }
@@ -339,21 +349,25 @@ export class AuthenticatedA2AService extends RpcTarget {
   }
 
   /**
-   * Get task (filtered to user's tasks)
+   * Get task (TODO: add user ownership filtering in Phase 2/3)
    */
   async getTask(taskId: string, historyLength?: number): Promise<Task> {
     const task = await this.taskManager.getTask(taskId, historyLength);
 
-    // In production, verify task belongs to user
-    // For MVP, we just return it
+    // TODO: Verify task belongs to user
+    // if (task.metadata?.userId !== this.userId) throw new Error('Unauthorized');
+
     return task;
   }
 
   /**
-   * List tasks (filtered to user's tasks)
+   * List tasks (TODO: add user filtering in Phase 2/3)
    */
   async listTasks(params: ListTasksParams): Promise<ListTasksResult> {
-    // In production, filter by userId
+    // TODO: Filter by userId
+    // const userParams = { ...params, filter: { ...params.filter, userId: this.userId } };
+    // return await this.taskManager.listTasks(userParams);
+
     return await this.taskManager.listTasks(params);
   }
 
@@ -361,9 +375,10 @@ export class AuthenticatedA2AService extends RpcTarget {
    * Cancel task (with ownership check)
    */
   async cancelTask(taskId: string): Promise<Task> {
-    const task = await this.taskManager.getTask(taskId);
+    // TODO: In production, verify task belongs to user
+    // const task = await this.taskManager.getTask(taskId);
+    // if (task.metadata?.userId !== this.userId) throw new Error('Unauthorized');
 
-    // In production, verify task belongs to user
     return await this.taskManager.cancelTask(taskId);
   }
 
