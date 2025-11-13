@@ -317,8 +317,8 @@ export class A2AService extends RpcTarget {
 
     // Extract text from message parts
     const textParts = message.parts
-      .filter(p => p.kind === 'text')
-      .map(p => (p as any).text)
+      .filter((p): p is { kind: 'text'; text: string } => p.kind === 'text')
+      .map(p => p.text)
       .join(' ');
 
     // Create a simple echo response
