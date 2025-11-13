@@ -10,7 +10,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@a2a-webcap/shared": "workspace:*",
+    "@a2a-webcap/shared": "file:../shared",
     "capnweb": "^0.1.0",
     "pino": "^8.14.0",
     "ws": "^8.14.0"

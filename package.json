@@ -1,19 +1,17 @@
 {
   "name": "a2a-webcap-monorepo",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
-    "build": "npm run clean && npm install && npm run build:packages",
-    "build:packages": "npm run build -w packages/shared && npm run build -w packages/server && npm run build -w packages/client",
+    "build": "npm run clean && npm run install:all && npm run build:packages",
+    "install:all": "cd packages/shared && npm install && cd ../server && npm install && cd ../client && npm install && cd ../..",
+    "build:packages": "cd packages/shared && npm run build && cd ../server && npm run build && cd ../client && npm run build && cd ../..",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint . --ext .ts",
     "clean": "rm -rf packages/*/dist packages/*/node_modules node_modules",
     "dev:server": "tsx packages/server/src/index.ts",
-    "demo:capnweb": "tsx acp-server-example/session.ts"
+    "demo:capnweb": "tsx examples/acp-server-example/session.ts"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
