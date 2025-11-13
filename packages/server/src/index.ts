@@ -31,7 +31,7 @@ const a2aService = new A2AService({
  * HTTP server for AgentCard and WebSocket upgrade
  */
 const server = createServer((req, res) => {
-  log.info('HTTP request', { method: req.method, url: req.url });
+  log.info({ method: req.method, url: req.url }, 'HTTP request');
 
   // Serve AgentCard at /.well-known/agent.json
   if (req.url === '/.well-known/agent.json') {
@@ -92,9 +92,7 @@ const server = createServer((req, res) => {
 const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws, req) => {
-  log.info('WebSocket connection established', {
-    remoteAddress: req.socket.remoteAddress
-  });
+  log.info({ remoteAddress: req.socket.remoteAddress }, 'WebSocket connection');
 
   // TODO: Replace simple JSON-RPC with proper capnweb RPC session once WebSocket adapter is ready
   // Current implementation uses basic JSON-RPC for MVP (Phase 1)
@@ -112,7 +110,7 @@ wss.on('connection', (ws, req) => {
 
     try {
       const request = JSON.parse(data.toString());
-      log.debug('RPC request', { method: request.method });
+      log.debug({ method: request.method }, 'RPC request');
 
       let response: any;
 
@@ -154,7 +152,7 @@ wss.on('connection', (ws, req) => {
       }));
 
     } catch (error: any) {
-      log.error('RPC error', { error: error.message });
+      log.error({ error: error.message, requestId }, 'RPC error');
 
       ws.send(JSON.stringify({
         id: requestId,
@@ -167,14 +165,11 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('close', (code, reason) => {
-    log.info('WebSocket connection closed', {
-      code,
-      reason: reason.toString()
-    });
+    log.info({ code, reason: reason.toString() }, 'WebSocket connection closed');
   });
 
   ws.on('error', (error) => {
-    log.error('WebSocket error', { error });
+    log.error({ error: error.message }, 'WebSocket error');
   });
 
   // Send welcome message
@@ -190,13 +185,7 @@ wss.on('connection', (ws, req) => {
  * Start server
  */
 server.listen(PORT, HOST, () => {
-  log.info('A2A CapnWeb Server started', {
-    port: PORT,
-    host: HOST,
-    agentUrl: AGENT_URL,
-    agentCard: `${AGENT_URL}/.well-known/agent.json`,
-    websocket: `ws://${HOST}:${PORT}`
-  });
+  log.info({ host: HOST, port: PORT, agentUrl: AGENT_URL }, 'A2A CapnWeb Server started');
 
   console.log('\n========================================');
   console.log('🚀 A2A CapnWeb Server Running');
@@ -212,20 +201,20 @@ server.listen(PORT, HOST, () => {
  * Graceful shutdown
  */
 process.on('SIGTERM', () => {
-  log.info('SIGTERM received, shutting down gracefully');
+  log.info('SIGTERM received, initiating graceful shutdown');
 
   wss.close(() => {
     log.info('WebSocket server closed');
   });
 
   server.close(() => {
-    log.info('HTTP server closed');
+    log.info('HTTP server closed - exiting');
     process.exit(0);
   });
 
   // Force shutdown after 10 seconds
   setTimeout(() => {
-    log.error('Forced shutdown after timeout');
+    log.error({ timeoutSec: 10 }, 'Forced shutdown after timeout');
     process.exit(1);
   }, 10000);
 });
