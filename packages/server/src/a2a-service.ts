@@ -14,6 +14,7 @@ import { ToolExecutor } from './tool-executor';
 import { ToolRegistry } from './tool-registry';
 import type { ToolApproval } from './tool-executor';
 import { TaskState } from '@a2a-webcap/shared';
+import type { AuthenticationService } from './authentication-service';
 import type {
   Message,
   Task,
@@ -42,11 +43,13 @@ export class A2AService extends RpcTarget {
   private taskManager: TaskManager;
   private toolExecutor: ToolExecutor;
   private config: A2AServiceConfig;
+  private authService?: AuthenticationService;
 
-  constructor(config: A2AServiceConfig = {}) {
+  constructor(config: A2AServiceConfig = {}, authService?: AuthenticationService) {
     super();
     this.taskManager = new TaskManager();
     this.toolExecutor = new ToolExecutor();
+    this.authService = authService;
     this.config = {
       agentName: config.agentName || 'A2A CapnWeb Server',
       agentDescription: config.agentDescription || 'A2A server using capnweb transport',
@@ -413,33 +416,49 @@ export class A2AService extends RpcTarget {
    * @returns Authenticated service (stub with user context)
    */
   async authenticate(credentials: AuthCredentials): Promise<AuthenticatedA2AService> {
-    log.info({ hasToken: !!credentials.token }, 'authenticate called');
+    log.info({ type: credentials.type, hasToken: !!credentials.token }, 'authenticate called');
 
-    // ⚠️ SECURITY WARNING: This is a STUB implementation for Phase 1 MVP ONLY
-    // DO NOT USE THIS IN PRODUCTION - it accepts ANY non-empty token!
-    //
-    // For production, implement proper authentication:
-    // - Validate against actual auth service (OAuth2, JWT, API keys)
-    // - Verify token signature and expiry
-    // - Check against user database
-    // - Implement rate limiting
-    // - Add audit logging
-    // - Use secure credential storage
-    //
-    // Phase 3 will implement capability-based security model
-    if (!credentials.token || credentials.token.length === 0) {
-      throw new Error('Invalid credentials');
+    // Use real authentication service if available
+    if (this.authService) {
+      const authResult = await this.authService.authenticate(credentials);
+
+      if (!authResult.authenticated) {
+        const error = authResult.metadata?.error || 'Authentication failed';
+        log.warn({ error }, 'Authentication failed');
+        throw new Error(`UNAUTHORIZED: ${error}`);
+      }
+
+      log.info(
+        {
+          userId: authResult.userId,
+          permissions: authResult.permissions
+        },
+        'Authentication successful'
+      );
+
+      return new AuthenticatedA2AService(
+        this,
+        this.taskManager,
+        authResult.userId!,
+        authResult.permissions || []
+      );
     }
 
-    // Return authenticated service with user context
+    // Fallback to stub implementation if no auth service configured
+    // (for backward compatibility with tests)
+    log.warn('Using stub authentication - not secure for production!');
+
+    if (!credentials.token || credentials.token.length === 0) {
+      throw new Error('UNAUTHORIZED: Invalid credentials');
+    }
+
     const userId = 'user-' + credentials.token.substring(0, 8);
 
-    log.info({ userId }, 'Authentication successful');
-
     return new AuthenticatedA2AService(
+      this,
       this.taskManager,
       userId,
-      ['read', 'write'] // permissions
+      ['read', 'write']
     );
   }
 
@@ -493,6 +512,22 @@ export class A2AService extends RpcTarget {
   }
 
   /**
+   * Create an authenticated service instance with user context
+   *
+   * @param userId - User ID
+   * @param permissions - User permissions
+   * @returns AuthenticatedA2AService instance
+   */
+  createAuthenticatedService(userId: string, permissions: string[]): AuthenticatedA2AService {
+    return new AuthenticatedA2AService(
+      this,
+      this.taskManager,
+      userId,
+      permissions
+    );
+  }
+
+  /**
    * Get the underlying task manager (for testing)
    */
   getTaskManager(): TaskManager {
@@ -510,6 +545,7 @@ export class A2AService extends RpcTarget {
  */
 export class AuthenticatedA2AService extends RpcTarget {
   constructor(
+    private a2aService: A2AService,
     private taskManager: TaskManager,
     private userId: string,
     private permissions: string[]
@@ -533,46 +569,43 @@ export class AuthenticatedA2AService extends RpcTarget {
       }
     };
 
-    // Create task through task manager
-    if (message.taskId) {
-      const task = await this.taskManager.getTask(message.taskId);
-      await this.taskManager.addMessageToHistory(task.id, message);
-      return task;
-    }
-
-    return await this.taskManager.createTask(message, enrichedConfig.metadata);
+    // Delegate to original A2AService.sendMessage to ensure proper message processing
+    // This ensures task state transitions and tool execution occur
+    return await this.a2aService.sendMessage(message, enrichedConfig);
   }
 
   /**
-   * Get task (TODO: add user ownership filtering in Phase 2/3)
+   * Get task with ownership check
    */
   async getTask(taskId: string, historyLength?: number): Promise<Task> {
     const task = await this.taskManager.getTask(taskId, historyLength);
 
-    // TODO: Verify task belongs to user
-    // if (task.metadata?.userId !== this.userId) throw new Error('Unauthorized');
+    // Verify task belongs to user
+    if (task.metadata?.userId && task.metadata.userId !== this.userId) {
+      throw new Error('FORBIDDEN: Task does not belong to user');
+    }
 
     return task;
   }
 
   /**
-   * List tasks (TODO: add user filtering in Phase 2/3)
+   * List tasks filtered by user ownership
    */
   async listTasks(params: ListTasksParams): Promise<ListTasksResult> {
-    // TODO: Filter by userId
-    // const userParams = { ...params, filter: { ...params.filter, userId: this.userId } };
-    // return await this.taskManager.listTasks(userParams);
-
-    return await this.taskManager.listTasks(params);
+    // Filter by userId to enforce ownership
+    return await this.taskManager.listTasks(params, this.userId);
   }
 
   /**
-   * Cancel task (with ownership check)
+   * Cancel task with ownership check
    */
   async cancelTask(taskId: string): Promise<Task> {
-    // TODO: In production, verify task belongs to user
-    // const task = await this.taskManager.getTask(taskId);
-    // if (task.metadata?.userId !== this.userId) throw new Error('Unauthorized');
+    // Verify task belongs to user before canceling
+    const task = await this.taskManager.getTask(taskId);
+
+    if (task.metadata?.userId && task.metadata.userId !== this.userId) {
+      throw new Error('FORBIDDEN: Cannot cancel task that does not belong to user');
+    }
 
     return await this.taskManager.cancelTask(taskId);
   }

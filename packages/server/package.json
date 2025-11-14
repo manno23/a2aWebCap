@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@a2a-webcap/shared": "file:../shared",
+    "@types/jsonwebtoken": "^9.0.10",
     "capnweb": "^0.1.0",
+    "jsonwebtoken": "^9.0.2",
     "pino": "^10.1.0",
     "ws": "^8.14.0"
   },
