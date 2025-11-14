@@ -25,6 +25,14 @@ const JWT_ISSUER = process.env.JWT_ISSUER || 'a2a-webcap';
 const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'a2a-api';
 const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT || '3600', 10);
 
+// Validate JWT secret in production
+if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'dev-secret-change-in-production') {
+  throw new Error(
+    'SECURITY ERROR: Default JWT secret detected in production environment. ' +
+    'Please set JWT_SECRET environment variable to a secure random value.'
+  );
+}
+
 /**
  * Create authentication and session services
  */
@@ -167,14 +175,28 @@ const server = createServer(async (req, res) => {
     } catch (error: any) {
       log.error({ error: error.message }, 'Authentication endpoint error');
 
-      res.writeHead(500, {
+      // Distinguish authentication errors (401) from internal errors (500)
+      const isAuthError = error.message?.includes('UNAUTHORIZED') ||
+                          error.message?.includes('Invalid') ||
+                          error.message?.includes('expired') ||
+                          error.code === 'UNAUTHORIZED';
+
+      const statusCode = isAuthError ? 401 : 500;
+      const headers: any = {
         'Content-Type': 'application/json',
         ...corsHeaders
-      });
+      };
+
+      // Add WWW-Authenticate header for 401 responses
+      if (isAuthError) {
+        headers['WWW-Authenticate'] = 'Bearer realm="a2a", error="invalid_token"';
+      }
+
+      res.writeHead(statusCode, headers);
       res.end(
         JSON.stringify({
-          error: 'INTERNAL_ERROR',
-          message: 'Authentication failed'
+          error: isAuthError ? 'UNAUTHORIZED' : 'INTERNAL_ERROR',
+          message: isAuthError ? error.message : 'Authentication failed'
         })
       );
     }
@@ -232,6 +254,10 @@ const wss = new WebSocketServer({ server });
 wss.on('connection', (ws, req) => {
   log.info({ remoteAddress: req.socket.remoteAddress }, 'WebSocket connection');
 
+  // Session tracking for this WebSocket connection
+  let authenticatedService: any = null;
+  let sessionId: string | null = null;
+
   // TODO: Replace simple JSON-RPC with proper capnweb RPC session once WebSocket adapter is ready
   // Current implementation uses basic JSON-RPC for MVP (Phase 1)
   // Phase 2 will integrate full capnweb transport layer
@@ -252,32 +278,87 @@ wss.on('connection', (ws, req) => {
 
       let response: any;
 
-      // Simple RPC dispatch (MVP implementation)
-      switch (request.method) {
-        case 'getAgentCard':
-          response = a2aService.getAgentCard();
-          break;
+      // Public methods that don't require authentication
+      if (request.method === 'getAgentCard') {
+        response = a2aService.getAgentCard();
+        ws.send(JSON.stringify({
+          id: request.id,
+          result: response
+        }));
+        return;
+      }
 
+      // Authentication method to establish session
+      if (request.method === 'authenticate') {
+        const sessionIdParam = request.params?.sessionId;
+
+        if (!sessionIdParam) {
+          throw Object.assign(new Error('Missing sessionId parameter'), { code: 'UNAUTHORIZED' });
+        }
+
+        const session = await sessionManager.validateSession(sessionIdParam);
+
+        if (!session) {
+          throw Object.assign(new Error('Invalid or expired session'), { code: 'UNAUTHORIZED' });
+        }
+
+        // Extend session to keep it alive
+        await sessionManager.extendSession(sessionIdParam, SESSION_TIMEOUT);
+
+        // Create authenticated service for this session
+        authenticatedService = a2aService.createAuthenticatedService(
+          session.userId,
+          session.permissions
+        );
+        sessionId = sessionIdParam;
+
+        log.info({ sessionId, userId: session.userId }, 'WebSocket authenticated');
+
+        ws.send(JSON.stringify({
+          id: request.id,
+          result: { authenticated: true, userId: session.userId }
+        }));
+        return;
+      }
+
+      // All other methods require authentication
+      if (!authenticatedService || !sessionId) {
+        throw Object.assign(new Error('Authentication required. Call authenticate method first.'), { code: 'UNAUTHORIZED' });
+      }
+
+      // Validate session is still active
+      const session = await sessionManager.validateSession(sessionId);
+      if (!session) {
+        authenticatedService = null;
+        sessionId = null;
+        throw Object.assign(new Error('Session expired. Please re-authenticate.'), { code: 'UNAUTHORIZED' });
+      }
+
+      // Extend session to keep it alive with activity
+      await sessionManager.extendSession(sessionId, SESSION_TIMEOUT);
+
+      // Dispatch to authenticated service
+      switch (request.method) {
         case 'sendMessage':
-          response = await a2aService.sendMessage(
+          response = await authenticatedService.sendMessage(
             request.params.message,
             request.params.config
           );
           break;
 
         case 'getTask':
-          response = await a2aService.getTask(
+          response = await authenticatedService.getTask(
             request.params.taskId,
             request.params.historyLength
           );
           break;
 
         case 'listTasks':
-          response = await a2aService.listTasks(request.params);
+          response = await authenticatedService.listTasks(request.params);
           break;
 
         case 'cancelTask':
-          response = await a2aService.cancelTask(request.params.taskId);
+          response = await authenticatedService.cancelTask(request.params.taskId);
           break;
 
         default:

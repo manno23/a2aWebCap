@@ -149,9 +149,9 @@ describe('AuthenticationService', () => {
     });
 
     it('should list API keys for user', async () => {
-      const key1 = authService.generateApiKey('user1', ['read']);
-      const key2 = authService.generateApiKey('user1', ['write']);
-      const key3 = authService.generateApiKey('user2', ['read']);
+      authService.generateApiKey('user1', ['read']);
+      authService.generateApiKey('user1', ['write']);
+      authService.generateApiKey('user2', ['read']);
 
       const user1Keys = await authService.listApiKeys('user1');
       const user2Keys = await authService.listApiKeys('user2');
