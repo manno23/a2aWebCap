@@ -1,0 +1,64 @@
+name: Agent integration scout (MCP)
+
+on:
+  schedule:
+    # Twice a week: Monday and Thursday at 06:00 UTC
+    - cron: "0 6 * * 1,4"
+  workflow_dispatch: {}
+
+jobs:
+  scout-agent-integration-opportunities:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write          # to update docs / state files
+      issues: write            # to open/update issues with integration ideas
+      pull-requests: write     # optional, in case you later want PRs
+      # id-token: write        # only if your MCP infra needs OIDC
+      # other scopes as needed
+
+    env:
+      GH_TOKEN: ${{ github.token }}  # for gh or MCP if it needs repo auth
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Optional: if you use gh + an MCP extension/CLI as the transport
+      - name: Install GitHub CLI
+        uses: cli/cli-action@v2
+        with:
+          version: latest
+
+      # Optional: if you have a dedicated MCP CLI or runner
+      # Install or set up your MCP client here (replace with your actual setup)
+      - name: Set up MCP client
+        run: |
+          echo "Install or configure your MCP client here"
+          # Example placeholder:
+          # npm install -g github-mcp-client
+        env:
+          GH_TOKEN: ${{ env.GH_TOKEN }}
+
+      - name: Run agent-integration scout via MCP
+        run: |
+          echo "Running MCP-based agent-integration scout..."
+          # Replace this with the actual command that talks to your MCP server.
+          # The MCP tool should:
+          #   - use search_repositories and/or search_code
+          #   - look for repos implementing agent communication protocols
+          #   - write results to docs/integration-ideas.md and/or
+          #     .github/agent-state/agent-integration-scout.json
+          #   - optionally create or update GitHub issues.
+          #
+          # Example (placeholder):
+          # mcp-client \
+          #   --server-url "$MCP_SERVER_URL" \
+          #   --tool "agent_integration_scout" \
+          #   --arg "repo_owner=${{ github.repository_owner }}" \
+          #   --arg "repo_name=${{ github.event.repository.name }}" \
+          #   --verbose
+        env:
+          GH_TOKEN: ${{ env.GH_TOKEN }}
+          # MCP_SERVER_URL: ${{ secrets.MCP_SERVER_URL }}   # if needed
+          # MCP_API_KEY:   ${{ secrets.MCP_API_KEY }}       # if needed
