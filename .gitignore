@@ -22,3 +22,6 @@ coverage/
 
 # Opencode
 .opencode/
+
+# Sourcerer MCP (vector database)
+.sourcerer/

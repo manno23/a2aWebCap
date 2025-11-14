@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "sourcerer": {
+      "command": "/root/go/bin/sourcerer",
+      "args": [],
+      "env": {
+        "OPENAI_API_KEY": "YOUR_API_KEY_HERE",
+        "SOURCERER_WORKSPACE_ROOT": "/home/user/a2aWebCap"
+      }
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+    }
+  }
+}
