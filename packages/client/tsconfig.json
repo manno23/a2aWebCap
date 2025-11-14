@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
+    "module": "ES2022",
     "lib": ["ES2022"],
     "strict": true,
     "esModuleInterop": true,
@@ -13,14 +13,13 @@
     "declarationMap": true,
     "sourceMap": true,
     "composite": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "paths": {
-      "@a2a-webcap/shared": ["../shared/src"]
-    }
+    "allowImportingTsExtensions": false,
+    "types": ["@cloudflare/workers-types"]
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist", "tests"],
+  "include": ["src/a2a-client-http.ts"],
+  "exclude": ["node_modules", "dist", "src/index.ts"],
   "references": [{ "path": "../shared" }]
 }

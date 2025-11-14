@@ -2,25 +2,30 @@
   "name": "@a2a-webcap/server",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
-    "start": "tsx src/standalone-server.ts",
-    "dev": "tsx watch src/standalone-server.ts",
-    "build": "tsc --project tsconfig.json"
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --project tsconfig.json",
+    "build:worker": "wrangler deploy --dry-run"
   },
   "dependencies": {
-    "@a2a-webcap/shared": "file:../shared",
-    "@types/jsonwebtoken": "^9.0.10",
-    "capnweb": "^0.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "pino": "^10.1.0",
-    "ws": "^8.14.0"
+    "@a2a-webcap/shared": "workspace:*",
+    "capnweb": "^0.1.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/ws": "^8.5.0",
+    "@cloudflare/workers-types": "^4.20251117.0",
+    "@types/node": "^20.19.25",
     "tsx": "^4.20.6",
-    "typescript": "^5.0.0"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.47.0"
   }
 }

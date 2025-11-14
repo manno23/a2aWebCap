@@ -365,7 +365,7 @@ export class TaskManager extends EventEmitter {
       return;
     }
 
-    const index = task.toolCalls.findIndex(tc => tc.callId === callId);
+    const index = task.toolCalls.findIndex((tc: ToolCall) => tc.callId === callId);
     if (index >= 0) {
       task.toolCalls[index] = updatedToolCall;
     }

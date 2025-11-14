@@ -4,7 +4,6 @@
  * Utilities for creating test objects with sensible defaults
  */
 
-import { randomUUID } from 'crypto';
 import type {
   Message,
   Task,
@@ -14,7 +13,9 @@ import type {
   FilePart,
   Artifact,
   AuthCredentials
-} from '@a2a-webcap/shared';
+} from '../../../shared/src/index';
+
+const randomUUID = () => globalThis.crypto?.randomUUID() || `uuid_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
 /**
  * Create a test message with default values
@@ -69,7 +70,7 @@ export function createFilePart(
     file: {
       name,
       mimeType,
-      bytes: Buffer.from(content).toString('base64')
+      bytes: btoa(encodeURIComponent(content).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode(parseInt(p1, 16))))
     }
   };
 }

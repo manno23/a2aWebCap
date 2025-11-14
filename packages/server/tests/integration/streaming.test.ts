@@ -13,7 +13,7 @@ import type { StatusUpdateEvent, ArtifactUpdateEvent } from '@a2a-webcap/shared'
 /**
  * Test callback that collects events
  */
-class TestCallback extends TaskUpdateCallback {
+class TestCallback implements TaskUpdateCallback {
   public statusUpdates: StatusUpdateEvent[] = [];
   public artifactUpdates: ArtifactUpdateEvent[] = [];
 
@@ -193,7 +193,7 @@ describe('Streaming Integration', () => {
 
     it('should handle callback errors gracefully', async () => {
       // Create a callback that throws
-      class ErrorCallback extends TaskUpdateCallback {
+      class ErrorCallback implements TaskUpdateCallback {
         async onStatusUpdate(event: StatusUpdateEvent): Promise<void> {
           throw new Error('Intentional test error');
         }
