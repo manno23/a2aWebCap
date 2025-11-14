@@ -13,7 +13,7 @@ jobs:
         run: |
           gh extension install github/gh-copilot
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
 
       - name: Debug gh copilot commands
         run: |
@@ -21,18 +21,17 @@ jobs:
           gh extension list
           gh copilot --help || true
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
 
-      # TODO: once you see the correct subcommand in the help output,
-      # replace the command below accordingly.
+      # Once we know the real subcommand for agents, we will replace these.
       - name: Run a2a-protocol-change-sentinel (dry test)
         run: |
-          echo "Replace this with the real 'gh copilot <subcommand>' for agents once known"
+          echo "TODO: replace with gh copilot <subcommand> run a2a-protocol-change-sentinel"
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
 
       - name: Run agent-integration-scout (dry test)
         run: |
-          echo "Replace this with the real 'gh copilot <subcommand>' for agents once known"
+          echo "TODO: replace with gh copilot <subcommand> run agent-integration-scout"
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
