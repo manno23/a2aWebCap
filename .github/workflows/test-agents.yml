@@ -13,20 +13,26 @@ jobs:
         run: |
           gh extension install github/gh-copilot
         env:
-          GH_TOKEN: ${{ secrets.MY_GH_PAT || secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Show gh copilot help (debug)
+      - name: Debug gh copilot commands
         run: |
           gh --version
           gh extension list
           gh copilot --help || true
         env:
-          GH_TOKEN: ${{ secrets.MY_GH_PAT || secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_API_KEY }}
 
-      # Placeholder: enable once 'agents' or similar is supported.
-      - name: NOTE
+      # TODO: once you see the correct subcommand in the help output,
+      # replace the command below accordingly.
+      - name: Run a2a-protocol-change-sentinel (dry test)
         run: |
-          echo "Custom agents are defined in .github/agents/*.agent.md"
-          echo "But the current gh copilot CLI does not support 'agents' yet."
-          echo "Once the CLI adds that subcommand, replace this step with:"
-          echo "  gh copilot agents run a2a-protocol-change-sentinel --verbose"
+          echo "Replace this with the real 'gh copilot <subcommand>' for agents once known"
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_API_KEY }}
+
+      - name: Run agent-integration-scout (dry test)
+        run: |
+          echo "Replace this with the real 'gh copilot <subcommand>' for agents once known"
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_API_KEY }}
