@@ -13,16 +13,16 @@ jobs:
         run: |
           gh extension install github/gh-copilot
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_API_KEY }}
 
       - name: Run a2a-protocol-change-sentinel (dry test)
         run: |
           gh copilot agents run a2a-protocol-change-sentinel --verbose
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_API_KEY }}
 
       - name: Run agent-integration-scout (dry test)
         run: |
           gh copilot agents run agent-integration-scout --verbose
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_API_KEY }}
