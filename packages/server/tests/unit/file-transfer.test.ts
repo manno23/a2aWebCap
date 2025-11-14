@@ -8,7 +8,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { TaskManager } from '../../src/task-manager';
 import { FilePartHandler } from '../../src/file-part-handler';
 import {
-  createTestMessage,
   createTestMessageWithParts,
   createFilePart,
   createTextPart

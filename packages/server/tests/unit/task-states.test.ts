@@ -440,7 +440,7 @@ describe('Task States - Comprehensive Coverage', () => {
       const task1 = await taskManager.createTask(createTestMessage('Task 1'));
       const task2 = await taskManager.createTask(createTestMessage('Task 2'));
       const task3 = await taskManager.createTask(createTestMessage('Task 3'));
-      const task4 = await taskManager.createTask(createTestMessage('Task 4'));
+      await taskManager.createTask(createTestMessage('Task 4'));
 
       await taskManager.updateTaskStatus(task1.id, TaskState.Completed);
       await taskManager.updateTaskStatus(task2.id, TaskState.Failed);

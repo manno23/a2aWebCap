@@ -17,7 +17,7 @@ const log = pino({ name: 'auth-service' });
 
 export interface AuthenticationServiceConfig {
   jwtSecret: string;
-  jwtAlgorithm?: string;
+  jwtAlgorithm?: jwt.Algorithm;
   jwtIssuer?: string;
   jwtAudience?: string;
   apiKeyHashAlgorithm?: string;
@@ -413,10 +413,12 @@ export class AuthenticationService {
       aud: this.config.jwtAudience
     };
 
-    return jwt.sign(payload, this.config.jwtSecret, {
-      algorithm: this.config.jwtAlgorithm as jwt.Algorithm,
+    const signOptions: any = {
+      algorithm: this.config.jwtAlgorithm || 'HS256',
       expiresIn: options?.expiresIn || '1h'
-    });
+    };
+
+    return jwt.sign(payload, this.config.jwtSecret, signOptions);
   }
 
   /**

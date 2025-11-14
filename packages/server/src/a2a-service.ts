@@ -437,6 +437,7 @@ export class A2AService extends RpcTarget {
       );
 
       return new AuthenticatedA2AService(
+        this,
         this.taskManager,
         authResult.userId!,
         authResult.permissions || []
@@ -454,6 +455,7 @@ export class A2AService extends RpcTarget {
     const userId = 'user-' + credentials.token.substring(0, 8);
 
     return new AuthenticatedA2AService(
+      this,
       this.taskManager,
       userId,
       ['read', 'write']
@@ -510,6 +512,22 @@ export class A2AService extends RpcTarget {
   }
 
   /**
+   * Create an authenticated service instance with user context
+   *
+   * @param userId - User ID
+   * @param permissions - User permissions
+   * @returns AuthenticatedA2AService instance
+   */
+  createAuthenticatedService(userId: string, permissions: string[]): AuthenticatedA2AService {
+    return new AuthenticatedA2AService(
+      this,
+      this.taskManager,
+      userId,
+      permissions
+    );
+  }
+
+  /**
    * Get the underlying task manager (for testing)
    */
   getTaskManager(): TaskManager {
@@ -527,6 +545,7 @@ export class A2AService extends RpcTarget {
  */
 export class AuthenticatedA2AService extends RpcTarget {
   constructor(
+    private a2aService: A2AService,
     private taskManager: TaskManager,
     private userId: string,
     private permissions: string[]
@@ -550,14 +569,9 @@ export class AuthenticatedA2AService extends RpcTarget {
       }
     };
 
-    // Create task through task manager
-    if (message.taskId) {
-      const task = await this.taskManager.getTask(message.taskId);
-      await this.taskManager.addMessageToHistory(task.id, message);
-      return task;
-    }
-
-    return await this.taskManager.createTask(message, enrichedConfig.metadata);
+    // Delegate to original A2AService.sendMessage to ensure proper message processing
+    // This ensures task state transitions and tool execution occur
+    return await this.a2aService.sendMessage(message, enrichedConfig);
   }
 
   /**
