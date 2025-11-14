@@ -108,9 +108,15 @@ export class TaskManager extends EventEmitter {
    * List tasks with optional filtering
    *
    * @param params - Query parameters (contextId, limit, offset, filter)
+   * @param userId - Optional user ID for ownership filtering
    */
-  async listTasks(params: ListTasksParams): Promise<ListTasksResult> {
+  async listTasks(params: ListTasksParams, userId?: string): Promise<ListTasksResult> {
     let tasks = Array.from(this.tasks.values());
+
+    // Filter by userId if provided (ownership filtering)
+    if (userId) {
+      tasks = tasks.filter(t => t.metadata?.userId === userId);
+    }
 
     // Filter by contextId if provided
     if (params.contextId) {

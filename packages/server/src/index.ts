@@ -9,6 +9,8 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import pino from 'pino';
 import { A2AService } from './a2a-service';
+import { AuthenticationService } from './authentication-service';
+import { SessionManager } from './session-manager';
 
 const log = pino({ name: 'a2a-server' });
 
@@ -16,6 +18,25 @@ const log = pino({ name: 'a2a-server' });
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 const AGENT_URL = process.env.AGENT_URL || `http://localhost:${PORT}`;
+
+// Authentication configuration
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const JWT_ISSUER = process.env.JWT_ISSUER || 'a2a-webcap';
+const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'a2a-api';
+const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT || '3600', 10);
+
+/**
+ * Create authentication and session services
+ */
+const authService = new AuthenticationService({
+  jwtSecret: JWT_SECRET,
+  jwtIssuer: JWT_ISSUER,
+  jwtAudience: JWT_AUDIENCE
+});
+
+const sessionManager = new SessionManager({
+  sessionTimeout: SESSION_TIMEOUT
+});
 
 /**
  * Create A2A service instance
@@ -25,13 +46,27 @@ const a2aService = new A2AService({
   agentDescription: process.env.AGENT_DESCRIPTION || 'A2A protocol server using capnweb transport',
   agentUrl: AGENT_URL,
   protocolVersion: '0.4.0'
-});
+}, authService);
 
 /**
- * HTTP server for AgentCard and WebSocket upgrade
+ * HTTP server for AgentCard, Authentication, and WebSocket upgrade
  */
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
   log.info({ method: req.method, url: req.url }, 'HTTP request');
+
+  // CORS headers
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type'
+  };
+
+  // Handle OPTIONS preflight
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, corsHeaders);
+    res.end();
+    return;
+  }
 
   // Serve AgentCard at /.well-known/agent.json
   if (req.url === '/.well-known/agent.json') {
@@ -39,9 +74,110 @@ const server = createServer((req, res) => {
 
     res.writeHead(200, {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
+      ...corsHeaders
     });
     res.end(JSON.stringify(agentCard, null, 2));
+    return;
+  }
+
+  // Authentication endpoint (POST /a2a/auth)
+  if (req.url === '/a2a/auth' && req.method === 'POST') {
+    try {
+      // Extract Authorization header
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader) {
+        res.writeHead(401, {
+          'Content-Type': 'application/json',
+          'WWW-Authenticate': 'Bearer realm="a2a"',
+          ...corsHeaders
+        });
+        res.end(
+          JSON.stringify({
+            error: 'UNAUTHORIZED',
+            message: 'Missing Authorization header'
+          })
+        );
+        return;
+      }
+
+      // Parse authorization header
+      const [scheme, token] = authHeader.split(' ');
+
+      if (scheme.toLowerCase() !== 'bearer') {
+        res.writeHead(401, {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        });
+        res.end(
+          JSON.stringify({
+            error: 'UNAUTHORIZED',
+            message: 'Only Bearer authentication supported'
+          })
+        );
+        return;
+      }
+
+      // Authenticate
+      const authResult = await authService.authenticate(
+        { type: 'bearer', token },
+        {
+          ipAddress: req.socket.remoteAddress,
+          userAgent: req.headers['user-agent']
+        }
+      );
+
+      if (!authResult.authenticated) {
+        res.writeHead(401, {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        });
+        res.end(
+          JSON.stringify({
+            error: 'UNAUTHORIZED',
+            message: authResult.metadata?.error || 'Invalid or expired token'
+          })
+        );
+        return;
+      }
+
+      // Create session
+      const session = await sessionManager.createSession({
+        userId: authResult.userId!,
+        permissions: authResult.permissions || [],
+        metadata: {
+          ipAddress: req.socket.remoteAddress,
+          userAgent: req.headers['user-agent']
+        }
+      });
+
+      // Return session info
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      });
+      res.end(
+        JSON.stringify({
+          sessionId: session.id,
+          expiresIn: SESSION_TIMEOUT,
+          userId: authResult.userId,
+          permissions: authResult.permissions
+        })
+      );
+    } catch (error: any) {
+      log.error({ error: error.message }, 'Authentication endpoint error');
+
+      res.writeHead(500, {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      });
+      res.end(
+        JSON.stringify({
+          error: 'INTERNAL_ERROR',
+          message: 'Authentication failed'
+        })
+      );
+    }
     return;
   }
 
@@ -53,13 +189,14 @@ const server = createServer((req, res) => {
       protocolVersion: '0.4.0',
       transport: 'capnweb',
       agentCard: `${AGENT_URL}/.well-known/agent.json`,
+      authEndpoint: `${AGENT_URL}/a2a/auth`,
       websocket: `ws://${HOST}:${PORT}`,
       status: 'running'
     };
 
     res.writeHead(200, {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
+      ...corsHeaders
     });
     res.end(JSON.stringify(info, null, 2));
     return;
@@ -71,7 +208,8 @@ const server = createServer((req, res) => {
       status: 'healthy',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      tasks: a2aService.getTaskManager().getTaskCount()
+      tasks: a2aService.getTaskManager().getTaskCount(),
+      sessions: sessionManager.getSessionCount()
     };
 
     res.writeHead(200, {
@@ -83,7 +221,7 @@ const server = createServer((req, res) => {
 
   // 404 for other endpoints
   res.writeHead(404, { 'Content-Type': 'text/plain' });
-  res.end('Not Found\n\nEndpoints:\n- / (server info)\n- /.well-known/agent.json (AgentCard)\n- /health (health check)\n- ws:// (WebSocket for RPC)\n');
+  res.end('Not Found\n\nEndpoints:\n- / (server info)\n- /.well-known/agent.json (AgentCard)\n- POST /a2a/auth (authentication)\n- /health (health check)\n- ws:// (WebSocket for RPC)\n');
 });
 
 /**
