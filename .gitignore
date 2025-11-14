@@ -25,3 +25,6 @@ coverage/
 
 # Sourcerer MCP (vector database)
 .sourcerer/
+
+# Claude Code local settings (may contain secrets)
+.claude/settings.local.json
