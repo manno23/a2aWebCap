@@ -1,0 +1,28 @@
+name: Test custom agents
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  test-agents:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Copilot CLI
+        run: |
+          gh extension install github/gh-copilot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run a2a-protocol-change-sentinel (dry test)
+        run: |
+          gh copilot agents run a2a-protocol-change-sentinel --verbose
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run agent-integration-scout (dry test)
+        run: |
+          gh copilot agents run agent-integration-scout --verbose
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
