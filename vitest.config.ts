@@ -7,6 +7,7 @@ export default defineConfig({
     environment: 'node',
     include: ['packages/**/tests/**/*.test.ts', 'packages/**/tests/**/*.spec.ts'],
     exclude: ['node_modules', 'dist', 'examples'],
+    reporters: 'default', // Using default reporter for now
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov', 'json'],
