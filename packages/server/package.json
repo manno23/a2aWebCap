@@ -2,13 +2,23 @@
   "name": "@a2a-webcap/server",
   "version": "0.1.0",
   "private": true,
-  "dependencies": {
-    "@a2a-webcap/shared": "workspace:*",
-    "capnweb": "^0.1.0",
-    "pino": "^8.14.0"
-  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "start": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir dist"
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@a2a-webcap/shared": "file:../shared",
+    "capnweb": "^0.1.0",
+    "pino": "^10.1.0",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.0.0"
   }
 }

@@ -1,5 +1,16 @@
-// Export all components from the capnweb library
-export * from 'capnweb';
+/**
+ * @a2a-webcap/shared
+ * Shared types and utilities for A2A on CapnWeb
+ */
 
-// Export all components from the Agent Client Protocol SDK
-export * from '@agentclientprotocol/sdk';
+// Export all A2A protocol types
+export * from './a2a-types';
+
+// Export capnweb RPC primitives
+// export { RpcTarget, RpcStub } from 'capnweb';
+
+// WebSocket session creators
+// export {
+//   newWebSocketRpcSession,
+//   newMessagePortRpcSession
+// } from 'capnweb';

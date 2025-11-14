@@ -4,14 +4,19 @@
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "bun build src/index.ts --outdir dist"
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
-  "export": {
-
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@agentclientprotocol/sdk": "^0.5.1",
     "capnweb": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
   }
 }
