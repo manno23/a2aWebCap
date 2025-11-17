@@ -22,3 +22,6 @@ coverage/
 
 # Opencode
 .opencode/
+
+# MCP
+.sourcerer/

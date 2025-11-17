@@ -1,0 +1,36 @@
+name: Copilot Code Review
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  copilot-review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run GitHub Copilot code review
+        uses: github/copilot-code-review@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          model: gpt-4o-mini
+          instructions: |
+            You are a lightweight code review assistant.
+            Review only the changes introduced in this pull request.
+
+            Focus on:
+            - obvious bugs or unsafe patterns
+            - missing tests or obviously untested logic
+            - inconsistent or unclear naming
+            - violations of clearly established patterns in this repo
+
+            Do not block on minor formatting or stylistic issues that could be caught by linters/formatters.
+            Keep feedback concise and actionable.
