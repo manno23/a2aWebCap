@@ -5,28 +5,46 @@
  * Serves AgentCard at /.well-known/agent.json
  */
 
-import { createServer, IncomingMessage } from 'http';
-import { WebSocketServer, WebSocket } from 'ws';
+import { createServer } from 'http';
+import { WebSocketServer } from 'ws';
 import pino from 'pino';
-import { A2AService } from './a2a-service.js';
-import { AuthenticationService } from './authentication-service.js';
-import { SessionManager } from './session-manager.js';
+import { A2AService } from './a2a-service';
+import { AuthenticationService } from './authentication-service';
+import { SessionManager } from './session-manager';
 
-const log = pino({ name: 'a2a-server' });
 
+// Server configuration from environment
+const PORT = parseInt(process.env.PORT || '8080', 10);
 const HOST = process.env.HOST || '0.0.0.0';
-const PORT = parseInt(process.env.PORT || '3000', 10);
-const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT || '3600000', 10); // 1 hour
-const AGENT_URL = process.env.AGENT_URL || `http://${HOST}:${PORT}`;
+const AGENT_URL = process.env.AGENT_URL || `http://localhost:${PORT}`;
+
+// Authentication configuration
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const JWT_ISSUER = process.env.JWT_ISSUER || 'a2a-webcap';
+const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'a2a-api';
+const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT || '3600', 10);
+
+// Validate JWT secret in production
+if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'dev-secret-change-in-production') {
+  throw new Error(
+    'SECURITY ERROR: Default JWT secret detected in production environment. ' +
+    'Please set JWT_SECRET environment variable to a secure random value.'
+  );
+}
+
+/**
+ * Create authentication and session services
+ */
+
+     const authService = new AuthenticationService({
+  jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me!!'
+});
 const authService = new AuthenticationService({
-  jwtSecret: process.env.JWT_SECRET || 'super-secret-jwt-key-for-development-only-change-in-production!!'
+  jwtSecret: JWT_SECRET,
+  jwtIssuer: JWT_ISSUER,
+  jwtAudience: JWT_AUDIENCE
 });
 
-const HOST = process.env.HOST || '0.0.0.0';
-const PORT = parseInt(process.env.PORT || '3000');
-const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT || '3600000'); // 1 hour
-const AGENT_URL = process.env.AGENT_URL || `http://${HOST}:${PORT}`;
-const authService = new AuthenticationService();
 const sessionManager = new SessionManager({
   sessionTimeout: SESSION_TIMEOUT
 });
@@ -41,6 +59,7 @@ const a2aService = new A2AService({
   protocolVersion: '0.4.0'
 }, authService);
 
+const log = pino({ name: 'a2a-server' });
 /**
  * HTTP server for AgentCard, Authentication, and WebSocket upgrade
  */
