@@ -1,0 +1,13 @@
+direction: right
+
+AgentConfig -> BaseAgent: "config used to construct"
+BaseAgent -> LlmAgent: "extends" 
+BaseAgent -> Tool: "uses *"
+LlmAgent -> Model: "calls"
+AgentTool -> BaseAgent: "wraps"
+FunctionTool -> Tool: "implements"
+AgentTool -> Tool: "implements"
+InvocationContext -> Session: "includes"
+InvocationContext -> Event: "references history"
+ToolContext -> InvocationContext: "wraps"
+Session -> Event: "0..* events"

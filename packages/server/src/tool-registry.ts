@@ -4,9 +4,9 @@
  */
 
 import type { ToolCall, ToolStatus } from '@a2a-webcap/shared';
-import pino from 'pino';
+import { createLogger } from '@a2a-webcap/shared';
 
-const log = pino({ name: 'tool-registry' });
+const log = createLogger('tool-registry');
 
 /**
  * Tool definition with schema and execution function

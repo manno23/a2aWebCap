@@ -4,12 +4,13 @@
  */
 
 import { EventEmitter } from 'events';
+import type { EventEmitter as EventEmitterType } from 'events';
 import { randomUUID } from 'crypto';
 import type { ToolCall, ToolStatus } from '@a2a-webcap/shared';
-import { ToolRegistry, type ToolDefinition } from './tool-registry';
-import pino from 'pino';
+import { ToolRegistry, type ToolDefinition } from './tool-registry.js';
+import { createLogger } from '@a2a-webcap/shared';
 
-const log = pino({ name: 'tool-executor' });
+const log = createLogger('tool-executor');
 
 /**
  * Tool execution events
@@ -47,7 +48,7 @@ export interface ToolApproval {
  * Tool Executor
  * Manages tool execution lifecycle with approval workflow
  */
-export class ToolExecutor extends EventEmitter {
+export class ToolExecutor extends EventEmitter implements EventEmitterType {
   private registry: ToolRegistry;
   private toolCalls = new Map<string, ToolCall>();
   private taskTools = new Map<string, Set<string>>(); // taskId -> Set<callId>

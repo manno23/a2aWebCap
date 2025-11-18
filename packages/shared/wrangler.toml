@@ -1,0 +1,13 @@
+name = "a2a-webcap-shared"
+main = "dist/index.js"
+compatibility_date = "2024-11-17"
+compatibility_flags = ["nodejs_compat"]
+
+[build]
+command = "npm run build"
+
+[env.production]
+name = "a2a-webcap-shared-prod"
+
+[env.staging]
+name = "a2a-webcap-shared-staging"

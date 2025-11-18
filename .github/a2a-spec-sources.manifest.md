@@ -45,22 +45,58 @@ The values here are used by automation (e.g., the `a2a-protocol-change-sentinel`
 ## capnweb Transport
 
 - `name`: `capnweb`
-- `current_version`: `"v0.1.0"`  
+- `current_version`: `"v0.2.0"`  
 - `status`: `"tracking"`  <!-- "tracking"|"pinned"|"legacy" -->
 - `official_spec_url`:  
-  `https://example.com/capnweb/spec`
+  `https://github.com/cloudflare/capnweb`
 - `changelog_url`:  
-  `https://example.com/capnweb/changelog`
+  `https://github.com/cloudflare/capnweb/releases`
 - `news_and_updates_urls`:
-  - `https://example.com/capnweb/blog`
-  - `https://example.com/capnweb/releases`
+  - `https://github.com/cloudflare/capnweb`
+  - `https://www.npmjs.com/package/capnweb`
 
-**Notes**
+### Build Compatibility Matrix
 
-- a2aWebCap provides a capnweb-based transport layer for a2a; behavior such as framing,
-  backpressure, error propagation, and serialization must follow the capnweb spec.
-- When new capnweb versions introduce breaking changes, this repo should create tracking issues and
-  plan upgrades, rather than silently diverging from the spec.
+| Feature | capnweb | a2aWebCap | Status |
+|---------|---------|-----------|---------|
+| Node Engines | `>=18` | `>=18` | ✅ Aligned |
+| TypeScript | `^5.9.3` | `^5.9.3` | ✅ Aligned |
+| Module System | ESM (`"type": "module"`) | ESM (`"type": "module"`) | ✅ Aligned |
+| Module Resolution | `NodeNext` | `NodeNext` | ✅ Aligned |
+| JS Target | `ES2020` (ESNext dev) | `ES2022` | ⚠️ Compatible |
+| Build Tool | `tsup` (ESM+CJS) | `tsc` | ⚠️ Different |
+| Export Maps | Full conditional exports | Basic | ⚠️ Consider upgrade |
+| Workers Support | `workerd` conditionals | Planned | 🔄 In Progress |
+
+### Implementation Notes
+
+- **Module System**: Both projects use pure ESM with conditional exports for Workers runtime
+- **Target Alignment**: Our ES2022 target is compatible with capnweb's ES2020 minimum
+- **Build Tooling**: We use tsc for simplicity, capnweb uses tsup for dual ESM/CJS output
+- **Workers Support**: capnweb provides special builds for `workerd` environment
+- **TypeScript**: We maintain compatibility with TS 5.6+ features
+
+### Tracking Requirements
+
+- Monitor capnweb's `engines.node` for minimum Node version changes
+- Track module type changes (ESM vs CJS)
+- Watch for TypeScript version requirements
+- Note any breaking changes in export maps
+- Validate Workers runtime compatibility
+
+### Update Schedule
+
+- Check capnweb releases monthly
+- Update manifest when major version changes
+- Validate compatibility in CI pipeline
+- Review build tool alignment quarterly
+
+### Action Items
+
+1. **Short Term**: Maintain current tsc-based build for development simplicity
+2. **Medium Term**: Consider tsup for dual ESM/CJS output if publishing to npm
+3. **Long Term**: Implement export maps similar to capnweb for Workers compatibility
+4. **Ongoing**: Monitor capnweb's Workers-specific optimizations
 
 ---
 

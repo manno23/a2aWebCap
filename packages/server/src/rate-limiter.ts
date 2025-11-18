@@ -4,9 +4,9 @@
  * Implements token bucket algorithm for rate limiting per user and globally
  */
 
-import pino from 'pino';
+import { createLogger } from '@a2a-webcap/shared';
 
-const log = pino({ name: 'rate-limiter' });
+const log = createLogger('rate-limiter');
 
 export interface RateLimiterConfig {
   points: number; // Number of requests allowed

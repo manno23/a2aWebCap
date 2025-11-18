@@ -5,16 +5,9 @@
  * replacing traditional HTTP+JSON-RPC transport with capnweb.
  */
 
-import { RpcTarget } from 'capnweb';
-import pino from 'pino';
-import { TaskManager } from './task-manager';
-import { StreamingTask } from './streaming-task';
-import type { TaskUpdateCallback } from './task-update-callback';
-import { ToolExecutor } from './tool-executor';
-import { ToolRegistry } from './tool-registry';
-import type { ToolApproval } from './tool-executor';
-import { TaskState } from '@a2a-webcap/shared';
-import type { AuthenticationService } from './authentication-service';
+import { createLogger, type Logger } from '../../shared/src/logger.js';
+const log: Logger = createLogger('a2a-service');
+
 import type {
   Message,
   Task,
@@ -24,9 +17,20 @@ import type {
   ListTasksResult,
   AuthCredentials,
   ToolCall
-} from '@a2a-webcap/shared';
+} from '../../shared/src/a2a-types.js';
+import { TaskState } from '../../shared/src/a2a-types.js';
 
-const log = pino({ name: 'a2a-service' });
+
+import { TaskManager } from './task-manager.js';
+import { StreamingTask } from './streaming-task.js';
+
+import { ToolRegistry } from './tool-registry.js';
+import { ToolExecutor } from './tool-executor.js';
+import type { TaskUpdateCallback } from './task-update-callback.js';
+import type { ToolApproval, ToolStatusChangeEvent, ToolApprovalNeededEvent } from './tool-executor.js';
+import type { AuthenticationService } from './authentication-service.js';
+import { SessionManager } from './session-manager.js';
+
 
 export interface A2AServiceConfig {
   agentName?: string;
@@ -39,14 +43,20 @@ export interface A2AServiceConfig {
  * Main A2A Service exposed via CapnWeb RPC
  * Implements all A2A protocol methods
  */
-export class A2AService extends RpcTarget {
+export class A2AService {
+  private sessionManager = new SessionManager({ sessionTimeout: 3600 });
+
+  private taskManager: TaskManager;
+  private toolExecutor: ToolExecutor;
+  private config: A2AServiceConfig;
+  private authService?: AuthenticationService;
   private taskManager: TaskManager;
   private toolExecutor: ToolExecutor;
   private config: A2AServiceConfig;
   private authService?: AuthenticationService;
 
   constructor(config: A2AServiceConfig = {}, authService?: AuthenticationService) {
-    super();
+    // super();
     this.taskManager = new TaskManager();
     this.toolExecutor = new ToolExecutor();
     this.authService = authService;
@@ -57,7 +67,7 @@ export class A2AService extends RpcTarget {
       protocolVersion: config.protocolVersion || '0.4.0'
     };
 
-    log.info({ config: this.config }, 'A2AService initialized');
+    log.info('A2AService initialized', { config: this.config });
 
     // Setup tool execution event handlers
     this.setupToolExecutionHandlers();
@@ -68,7 +78,7 @@ export class A2AService extends RpcTarget {
    */
   private setupToolExecutionHandlers(): void {
     // When a tool needs approval, transition task to InputRequired state
-    this.toolExecutor.on('tool:needsApproval', async (event) => {
+    this.toolExecutor.on('tool:needsApproval', async (event: ToolApprovalNeededEvent) => {
       log.info({
         taskId: event.taskId,
         callId: event.callId,
@@ -80,16 +90,17 @@ export class A2AService extends RpcTarget {
           event.taskId,
           TaskState.InputRequired
         );
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errAny = err as any;
         log.error({
           taskId: event.taskId,
-          error: err.message
+          error: errAny.message
         }, 'Failed to update task status for approval');
       }
     });
 
     // When tool status changes, sync with task
-    this.toolExecutor.on('tool:statusChange', async (event) => {
+    this.toolExecutor.on('tool:statusChange', async (event: ToolStatusChangeEvent) => {
       log.info({
         taskId: event.taskId,
         callId: event.callId,
@@ -116,10 +127,11 @@ export class A2AService extends RpcTarget {
             }
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errAny = err as any;
         log.error({
           taskId: event.taskId,
-          error: err.message
+          error: errAny.message
         }, 'Failed to handle tool status change');
       }
     });
@@ -135,15 +147,26 @@ export class A2AService extends RpcTarget {
    * @param config - Optional configuration
    * @returns Task or Message depending on whether task is created
    */
-  async sendMessage(
-    message: Message,
-    config?: MessageSendConfig
-  ): Promise<Task | Message> {
-    log.info({
-      messageId: message.messageId,
-      role: message.role,
-      hasTaskId: !!message.taskId
-    }, 'sendMessage called');
+async sendMessage(
+  connectionId: string,
+  message: Message,
+  config: MessageSendConfig | undefined
+): Promise<Task | Message> {
+  // Capability check
+  const sessionId = this.sessionManager.getSessionId(connectionId);
+  if (!sessionId || !this.sessionManager.authService.hasCapability(
+    sessionId, 
+    message.taskId ? 'sendMessage' : 'createTask', 
+    message.taskId ? `tasks:${message.taskId}` : 'tasks:*'
+  )) {
+    throw new Error('Insufficient capabilities');
+  }
+
+  log.info({
+    messageId: message.messageId,
+    role: message.role,
+    hasTaskId: !!message.taskId
+  }, 'sendMessage called');
 
     try {
       // If message has taskId, continue existing task
@@ -339,11 +362,22 @@ export class A2AService extends RpcTarget {
    * @param input - Tool input parameters
    * @returns Tool call object
    */
-  async executeTool(
-    taskId: string,
-    toolName: string,
-    input?: Record<string, any>
-  ): Promise<ToolCall> {
+async executeTool(
+  connectionId: string,
+  taskId: string,
+  toolName: string,
+  input?: Record<string, any>
+): Promise<ToolCall> {
+  const sessionId = this.sessionManager.getSessionId(connectionId);
+  if (!sessionId || !this.sessionManager.authService.hasCapability(
+    sessionId, 
+    'executeTool', 
+    `tasks:${taskId}`
+  )) {
+    throw new Error('Insufficient capabilities for tool execution');
+  }
+
+  log.info({ taskId, toolName }, 'executeTool called');
     log.info({ taskId, toolName }, 'executeTool called');
 
     try {
@@ -389,7 +423,7 @@ export class A2AService extends RpcTarget {
    */
   listTools(): Array<{name: string; description: string; requiresApproval: boolean}> {
     const tools = this.toolExecutor.getRegistry().listTools();
-    return tools.map(tool => ({
+    return tools.map((tool: any) => ({
       name: tool.name,
       description: tool.description,
       requiresApproval: tool.requiresApproval
@@ -482,8 +516,8 @@ export class A2AService extends RpcTarget {
 
     // Extract text from message parts
     const textParts = message.parts
-      .filter((p): p is { kind: 'text'; text: string } => p.kind === 'text')
-      .map(p => p.text)
+      .filter((p: any): p is { kind: 'text'; text: string } => p.kind === 'text')
+      .map((p: { kind: 'text'; text: string }) => p.text)
       .join(' ');
 
     // Create a simple echo response
@@ -543,14 +577,14 @@ export class A2AService extends RpcTarget {
  * - No need to send credentials with every request
  * - Stub disposal automatically revokes access
  */
-export class AuthenticatedA2AService extends RpcTarget {
+export class AuthenticatedA2AService {
   constructor(
     private a2aService: A2AService,
     private taskManager: TaskManager,
     private userId: string,
     private permissions: string[]
   ) {
-    super();
+    // super();
     log.info({ userId, permissions }, 'AuthenticatedA2AService created');
   }
 

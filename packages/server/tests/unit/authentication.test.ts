@@ -22,7 +22,7 @@ describe('AuthenticationService', () => {
 
   describe('JWT Authentication', () => {
     it('should accept valid JWT token', async () => {
-      const token = authService.generateJWT('user123', ['read', 'write']);
+      const token = await authService.generateJWT('user123', ['read', 'write']);
 
       const result = await authService.authenticate({ type: 'bearer', token });
 
@@ -33,7 +33,7 @@ describe('AuthenticationService', () => {
     });
 
     it('should reject expired JWT token', async () => {
-      const token = authService.generateJWT('user123', ['read'], {
+      const token = await authService.generateJWT('user123', ['read'], {
         expiresIn: '0s' // Immediately expired
       });
 
@@ -53,7 +53,7 @@ describe('AuthenticationService', () => {
         jwtAudience: 'a2a-api'
       });
 
-      const token = otherService.generateJWT('user123', ['read']);
+      const token = await otherService.generateJWT('user123', ['read']);
 
       const result = await authService.authenticate({ type: 'bearer', token });
 
@@ -63,7 +63,7 @@ describe('AuthenticationService', () => {
 
     it('should reject revoked token', async () => {
       const tokenId = 'token-to-revoke';
-      const token = authService.generateJWT('user123', ['read'], { tokenId });
+      const token = await authService.generateJWT('user123', ['read'], { tokenId });
 
       // Revoke the token
       authService.revokeToken(tokenId);
@@ -75,7 +75,7 @@ describe('AuthenticationService', () => {
     });
 
     it('should extract permissions from JWT', async () => {
-      const token = authService.generateJWT('user123', ['read', 'write', 'execute']);
+      const token = await authService.generateJWT('user123', ['read', 'write', 'execute']);
 
       const result = await authService.authenticate({ type: 'bearer', token });
 
@@ -84,7 +84,7 @@ describe('AuthenticationService', () => {
     });
 
     it('should include token metadata in result', async () => {
-      const token = authService.generateJWT('user123', ['read']);
+      const token = await authService.generateJWT('user123', ['read']);
 
       const result = await authService.authenticate({ type: 'bearer', token });
 
@@ -203,7 +203,7 @@ describe('AuthenticationService', () => {
 
   describe('Authentication Metadata', () => {
     it('should include IP address in audit log', async () => {
-      const token = authService.generateJWT('user123', ['read']);
+      const token = await authService.generateJWT('user123', ['read']);
 
       await authService.authenticate(
         { type: 'bearer', token },

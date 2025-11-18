@@ -11,12 +11,15 @@
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json"
+    "build": "tsc --project tsconfig.json",
+    "build:worker": "node build.js"
   },
   "dependencies": {
     "capnweb": "^0.1.0"
   },
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "@cloudflare/workers-types": "^4.20251117.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.9.3"
   }
 }

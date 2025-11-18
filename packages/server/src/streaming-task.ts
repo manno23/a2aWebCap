@@ -5,13 +5,14 @@
  * This enables real-time bidirectional communication between server and client.
  */
 
-import { RpcTarget } from 'capnweb';
-import pino from 'pino';
-import type { TaskManager, TaskUpdateEvent } from './task-manager';
-import type { TaskUpdateCallback } from './task-update-callback';
-import { TaskState, type Task, type StatusUpdateEvent, type ArtifactUpdateEvent } from '@a2a-webcap/shared';
 
-const log = pino({ name: 'streaming-task' });
+import { createLogger } from '@a2a-webcap/shared';
+import type { TaskManager, TaskUpdateEvent } from './task-manager.js';
+import type { TaskUpdateCallback } from './task-update-callback.js';
+import { TaskState } from '@a2a-webcap/shared';
+import type { Task, StatusUpdateEvent, ArtifactUpdateEvent } from '@a2a-webcap/shared';
+
+const log = createLogger('streaming-task');
 
 /**
  * StreamingTask represents a task with real-time update capabilities
@@ -22,8 +23,8 @@ const log = pino({ name: 'streaming-task' });
  * - Handles callback errors gracefully
  * - Tracks whether task has reached final state
  */
-export class StreamingTask extends RpcTarget {
-  private callbacks = new Set<TaskUpdateCallback>();
+export class StreamingTask {
+  private callbacks = new Set<any>();
   private unsubscribeHandler?: () => void;
   private isFinal = false;
   private monitoringStarted = false;
@@ -34,7 +35,7 @@ export class StreamingTask extends RpcTarget {
     private task: Task,
     private taskManager: TaskManager
   ) {
-    super();
+    // super();
     log.info({ taskId: task.id }, 'StreamingTask created');
     // Don't start monitoring immediately to avoid race condition where
     // early task updates could be missed before callbacks subscribe
@@ -45,7 +46,7 @@ export class StreamingTask extends RpcTarget {
    *
    * @param callback - TaskUpdateCallback implementation
    */
-  async subscribe(callback: TaskUpdateCallback): Promise<void> {
+  async subscribe(callback: any): Promise<void> {
     log.info({ taskId: this.task.id }, 'Callback subscribed');
     this.callbacks.add(callback);
 
@@ -76,7 +77,7 @@ export class StreamingTask extends RpcTarget {
    *
    * @param callback - Callback to remove
    */
-  unsubscribeCallback(callback: TaskUpdateCallback): void {
+  unsubscribeCallback(callback: any): void {
     this.callbacks.delete(callback);
     log.info({ taskId: this.task.id, remainingCallbacks: this.callbacks.size }, 'Callback unsubscribed');
   }

@@ -9,14 +9,20 @@
  */
 
 import crypto from 'crypto';
-import pino from 'pino';
+import { AuthenticationService } from './authentication-service.js';
+import { createLogger } from '@a2a/shared';
+import type { CapabilitySet } from '@a2a/shared';
+import { AuthenticationService } from './authentication-service.js';
 
-const log = pino({ name: 'session-manager' });
+const log = createLogger('session-manager');
+
+import type { CapabilitySet } from '@a2a-webcap/shared';
 
 export interface Session {
   id: string;
   userId: string;
   permissions: string[];
+  capabilities?: CapabilitySet;
   createdAt: Date;
   expiresAt: Date;
   metadata?: Record<string, any>;
@@ -31,11 +37,38 @@ export interface SessionManagerConfig {
  * SessionManager handles temporary authentication sessions
  */
 export class SessionManager {
+  private authService = new AuthenticationService({ jwtSecret: 'dummy' });
+  
   private sessions = new Map<string, Session>();
   private cleanupTimer?: NodeJS.Timeout;
   private config: SessionManagerConfig;
 
   constructor(config: SessionManagerConfig) {
+  private authService = new AuthenticationService({ jwtSecret: 'dummy' });
+  
+  private sessions = new Map<string, Session>();
+  private cleanupTimer?: NodeJS.Timeout;
+  private config: SessionManagerConfig;
+  private authService = new AuthenticationService({ jwtSecret: 'dummy' });
+  
+  private sessions = new Map<string, Session>();
+  private cleanupTimer?: NodeJS.Timeout;
+  private config: SessionManagerConfig;
+  private authService = new AuthenticationService({ jwtSecret: 'dummy' }); // Minimal config for capabilities
+  
+  private sessions = new Map<string, Session>();
+  private sessions = new Map<string, Session>();
+  private cleanupTimer?: NodeJS.Timeout;
+  private config: SessionManagerConfig;
+
+  constructor(config: SessionManagerConfig) {
+    this.config = {
+      cleanupInterval: 60000,
+      ...config
+    };
+    this.startCleanup();
+    log.info({ config: this.config }, 'SessionManager initialized');
+  }
     this.config = {
       cleanupInterval: 60000, // Default: 1 minute
       ...config
@@ -50,11 +83,47 @@ export class SessionManager {
   /**
    * Create a new session
    */
-  async createSession(data: {
-    userId: string;
-    permissions: string[];
-    metadata?: Record<string, any>;
-  }): Promise<Session> {
+async createSession(data: {
+  userId: string;
+  permissions: string[];
+  metadata?: Record<string, any>;
+}): Promise<Session> {
+  const sessionId = this.generateSessionId();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + this.config.sessionTimeout * 1000);
+
+  // Create capabilities
+  const capabilities = this.authService.createCapabilitySet(sessionId);
+  capabilities.globalCapabilities.push({
+    id: 'root',
+    actions: ['*'],
+    resources: ['*'],
+    expiresAt: expiresAt.getTime()
+  });
+
+  const session: Session = {
+    id: sessionId,
+    userId: data.userId,
+    permissions: data.permissions,
+    capabilities,
+    createdAt: now,
+    expiresAt,
+    metadata: data.metadata
+  };
+
+  this.sessions.set(sessionId, session);
+
+  log.info(
+    {
+      sessionId,
+      userId: data.userId,
+      expiresAt: expiresAt.toISOString()
+    },
+    'Session created'
+  );
+
+  return session;
+}
     const sessionId = this.generateSessionId();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + this.config.sessionTimeout * 1000);
@@ -166,9 +235,43 @@ export class SessionManager {
   /**
    * Get session count
    */
-  getSessionCount(): number {
-    return this.sessions.size;
+  getAuthService() {
+    return this.authService;
   }
+
+  getAuthService() {
+    return this.authService;
+  }
+
+getAuthService() {
+  return this.authService;
+}
+
+getSession(sessionId: string): Session | null {
+  const session = this.sessions.get(sessionId);
+  if (!session || session.expiresAt < new Date()) {
+    this.sessions.delete(sessionId);
+    return null;
+  }
+  return session;
+}
+
+getAuthService() {
+  return this.authService;
+}
+
+getSession(sessionId: string): Session | null {
+  const session = this.sessions.get(sessionId);
+  if (!session || session.expiresAt < new Date()) {
+    this.sessions.delete(sessionId);
+    return null;
+  }
+  return session;
+}
+
+getSessionCount(): number {
+  return this.sessions.size;
+}
 
   /**
    * Clear all sessions

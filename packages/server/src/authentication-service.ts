@@ -1,23 +1,23 @@
 /**
- * AuthenticationService - Real authentication implementation
+ * AuthenticationService - Workers-compatible authentication implementation
  *
  * Implements:
- * - JWT validation with signature verification
+ * - JWT validation with signature verification using Web Crypto API
  * - API key validation with hashing
  * - OAuth 2.0 token introspection (optional)
  * - Audit logging
  */
 
-import jwt from 'jsonwebtoken';
+import * as jwt from './jwt-worker.js';
 import crypto from 'crypto';
-import pino from 'pino';
-import type { AuthCredentials, AuthResult } from '@a2a-webcap/shared';
+import { createLogger, type Logger } from '@a2a-webcap/shared';
+import type { AuthCredentials, AuthResult, Capability, CapabilitySet } from '@a2a-webcap/shared';
 
-const log = pino({ name: 'auth-service' });
+const log = createLogger('auth-service');
 
 export interface AuthenticationServiceConfig {
   jwtSecret: string;
-  jwtAlgorithm?: jwt.Algorithm;
+  jwtAlgorithm?: string;
   jwtIssuer?: string;
   jwtAudience?: string;
   apiKeyHashAlgorithm?: string;
@@ -83,6 +83,44 @@ class ApiKeyStore {
  * Main authentication service
  */
 export class AuthenticationService {
+  private capabilities = new Map<string, CapabilitySet>();
+
+  createCapabilitySet(sessionId: string): CapabilitySet {
+    const capSet: CapabilitySet = {
+      taskCapabilities: {},
+      globalCapabilities: []
+    };
+    this.capabilities.set(sessionId, capSet);
+    return capSet;
+  }
+
+  hasCapability(sessionId: string, action: string, resource: string, taskId?: string): boolean {
+    const caps = this.capabilities.get(sessionId);
+    if (!caps) return false;
+
+    const checkCaps = (capabilities: Capability[]): boolean => {
+      return capabilities.some(cap => 
+        cap.actions.includes(action) && 
+        cap.resources.includes(resource) && 
+        (!cap.expiresAt || cap.expiresAt > Date.now())
+      );
+    };
+
+    // Check global capabilities first
+    if (checkCaps(caps.globalCapabilities)) return true;
+
+    // Check task-specific capabilities
+    if (taskId && caps.taskCapabilities[taskId]) {
+      return checkCaps(caps.taskCapabilities[taskId]);
+    }
+
+    return false;
+  }
+
+  private generateCapabilityId(): string {
+    return crypto.randomUUID();
+  }
+
   private config: AuthenticationServiceConfig;
   private apiKeyStore: ApiKeyStore;
   private revokedTokens = new Set<string>(); // In-memory revocation list
@@ -180,11 +218,11 @@ export class AuthenticationService {
   private async validateBearerToken(token: string): Promise<AuthResult> {
     try {
       // Verify JWT signature and claims
-      const decoded = jwt.verify(token, this.config.jwtSecret, {
-        algorithms: [this.config.jwtAlgorithm as jwt.Algorithm],
+      const decoded = await jwt.verify(token, this.config.jwtSecret, {
+        algorithms: [this.config.jwtAlgorithm || 'HS256'],
         issuer: this.config.jwtIssuer,
         audience: this.config.jwtAudience
-      }) as any;
+      });
 
       // Check if token is revoked
       const tokenId = decoded.jti;
@@ -400,11 +438,11 @@ export class AuthenticationService {
   /**
    * Generate a JWT token (for testing or token creation)
    */
-  generateJWT(
+  async generateJWT(
     userId: string,
     permissions: string[],
     options?: { expiresIn?: string; tokenId?: string }
-  ): string {
+  ): Promise<string> {
     const payload = {
       sub: userId,
       permissions,

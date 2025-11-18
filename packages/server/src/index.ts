@@ -5,44 +5,23 @@
  * Serves AgentCard at /.well-known/agent.json
  */
 
-import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
+import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { WebSocketServer, WebSocket } from 'ws';
 import pino from 'pino';
-import { A2AService } from './a2a-service';
-import { AuthenticationService } from './authentication-service';
-import { SessionManager } from './session-manager';
+import type { IncomingHttpHeaders } from 'http';
+import { A2AService } from './a2a-service.js';
+import { AuthenticationService } from './authentication-service.js';
+import { SessionManager } from './session-manager.js';
 
+const log = pino({ name: 'a2a-server' });
 
-// Server configuration from environment
-const PORT = parseInt(process.env.PORT || '8080', 10);
-const HOST = process.env.HOST || '0.0.0.0';
-const AGENT_URL = process.env.AGENT_URL || `http://localhost:${PORT}`;
+const HOST: string = process.env.HOST || '0.0.0.0';
+const PORT: number = parseInt(process.env.PORT || '3000', 10);
+const SESSION_TIMEOUT: number = parseInt(process.env.SESSION_TIMEOUT || '3600000', 10); // 1 hour
+const AGENT_URL: string = process.env.AGENT_URL || `http://${HOST}:${PORT}`;
 
-// Authentication configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
-const JWT_ISSUER = process.env.JWT_ISSUER || 'a2a-webcap';
-const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'a2a-api';
-const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT || '3600', 10);
-
-// Validate JWT secret in production
-if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'dev-secret-change-in-production') {
-  throw new Error(
-    'SECURITY ERROR: Default JWT secret detected in production environment. ' +
-    'Please set JWT_SECRET environment variable to a secure random value.'
-  );
-}
-
-/**
- * Create authentication and session services
- */
-
-     const authService = new AuthenticationService({
-  jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me!!'
-});
 const authService = new AuthenticationService({
-  jwtSecret: JWT_SECRET,
-  jwtIssuer: JWT_ISSUER,
-  jwtAudience: JWT_AUDIENCE
+  jwtSecret: process.env.JWT_SECRET || 'super-secret-jwt-key-for-development-only-change-in-production!!'
 });
 
 const sessionManager = new SessionManager({
@@ -59,11 +38,10 @@ const a2aService = new A2AService({
   protocolVersion: '0.4.0'
 }, authService);
 
-const log = pino({ name: 'a2a-server' });
 /**
  * HTTP server for AgentCard, Authentication, and WebSocket upgrade
  */
-const server = createServer(async (req, res) => {
+const server = createServer(async (req: IncomingMessage, res: any) => {
   log.info({ method: req.method, url: req.url }, 'HTTP request');
 
   // CORS headers
@@ -96,7 +74,7 @@ const server = createServer(async (req, res) => {
   if (req.url === '/a2a/auth' && req.method === 'POST') {
     try {
       // Extract Authorization header
-      const authHeader = req.headers.authorization;
+      const authHeader = (req.headers.authorization as string) || '';
 
       if (!authHeader) {
         res.writeHead(401, {
@@ -134,8 +112,8 @@ const server = createServer(async (req, res) => {
       const authResult = await authService.authenticate(
         { type: 'bearer', token },
         {
-          ipAddress: req.socket.remoteAddress,
-          userAgent: req.headers['user-agent']
+          ipAddress: (req.socket.remoteAddress as string) || 'unknown',
+          userAgent: (req.headers['user-agent'] as string) || 'unknown'
         }
       );
 
@@ -158,8 +136,8 @@ const server = createServer(async (req, res) => {
         userId: authResult.userId!,
         permissions: authResult.permissions || [],
         metadata: {
-          ipAddress: req.socket.remoteAddress,
-          userAgent: req.headers['user-agent']
+          ipAddress: (req.socket.remoteAddress as string) || 'unknown',
+          userAgent: (req.headers['user-agent'] as string) || 'unknown'
         }
       });
 
@@ -176,31 +154,22 @@ const server = createServer(async (req, res) => {
           permissions: authResult.permissions
         })
       );
-    } catch (error: any) {
-      log.error({ error: error.message }, 'Authentication endpoint error');
+    } catch (error: unknown) {
+      const errorAny = error as any;
+      log.error({ error: errorAny.message }, 'Auth error');
 
-      // Distinguish authentication errors (401) from internal errors (500)
-      const isAuthError = error.message?.includes('UNAUTHORIZED') ||
-                          error.message?.includes('Invalid') ||
-                          error.message?.includes('expired') ||
-                          error.code === 'UNAUTHORIZED';
-
+      const isAuthError = errorAny.code === 'INVALID_TOKEN' || errorAny.code === 'EXPIRED_TOKEN';
       const statusCode = isAuthError ? 401 : 500;
-      const headers: any = {
+      const headers = {
         'Content-Type': 'application/json',
         ...corsHeaders
       };
-
-      // Add WWW-Authenticate header for 401 responses
-      if (isAuthError) {
-        headers['WWW-Authenticate'] = 'Bearer realm="a2a", error="invalid_token"';
-      }
 
       res.writeHead(statusCode, headers);
       res.end(
         JSON.stringify({
           error: isAuthError ? 'UNAUTHORIZED' : 'INTERNAL_ERROR',
-          message: isAuthError ? error.message : 'Authentication failed'
+          message: isAuthError ? errorAny.message : 'Authentication failed'
         })
       );
     }
@@ -255,18 +224,18 @@ const server = createServer(async (req, res) => {
  */
 const wss = new WebSocketServer({ server });
 
-wss.on('connection', (ws, req) => {
+wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   log.info({ remoteAddress: req.socket.remoteAddress }, 'WebSocket connection');
 
   // Session tracking for this WebSocket connection
-  let authenticatedService: any = null;
+  let authenticatedService: any | null = null;
   let sessionId: string | null = null;
 
   // TODO: Replace simple JSON-RPC with proper capnweb RPC session once WebSocket adapter is ready
   // Current implementation uses basic JSON-RPC for MVP (Phase 1)
   // Phase 2 will integrate full capnweb transport layer
 
-  ws.on('message', async (data) => {
+  ws.on('message', async (data: Buffer | ArrayBuffer | Buffer[]) => {
     // Parse request ID early for error handling
     const requestId = (() => {
       try {
@@ -374,24 +343,25 @@ wss.on('connection', (ws, req) => {
         result: response
       }));
 
-    } catch (error: any) {
-      log.error({ error: error.message, requestId }, 'RPC error');
+    } catch (error: unknown) {
+      const errorAny = error as any;
+      log.error({ error: errorAny.message, requestId }, 'RPC error');
 
       ws.send(JSON.stringify({
         id: requestId,
         error: {
-          code: error.code || 'INTERNAL_ERROR',
-          message: error.message
+          code: errorAny.code || 'INTERNAL_ERROR',
+          message: errorAny.message
         }
       }));
     }
   });
 
-  ws.on('close', (code, reason) => {
+  ws.on('close', (code: number, reason: Buffer) => {
     log.info({ code, reason: reason.toString() }, 'WebSocket connection closed');
   });
 
-  ws.on('error', (error) => {
+  ws.on('error', (error: Error) => {
     log.error({ error: error.message }, 'WebSocket error');
   });
 

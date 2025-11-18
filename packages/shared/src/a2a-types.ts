@@ -293,3 +293,30 @@ export interface ListTasksResult {
   total?: number;
   hasMore?: boolean;
 }
+
+// ============================================================================
+// Capability-based Authorization Types
+// ============================================================================
+
+export interface Capability {
+  id: string;
+  actions: string[];
+  resources: string[];
+  expiresAt?: number;
+  parent?: string;
+  attenuatedFrom?: string;
+}
+
+export interface CapabilitySet {
+  taskCapabilities: Record<string, Capability[]>;
+  globalCapabilities: Capability[];
+}
+
+export interface AuthResult {
+  authenticated: boolean;
+  userId?: string;
+  permissions?: string[];
+  capabilities?: CapabilitySet;
+  expiresAt?: string;
+  metadata?: Record<string, any>;
+}

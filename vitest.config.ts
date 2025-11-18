@@ -25,13 +25,20 @@ export default defineConfig({
       }
     },
     testTimeout: 10000,
-    hookTimeout: 10000
+    hookTimeout: 10000,
+    // Standard Node.js environment for tests
+    // Workers-specific functionality is mocked in tests
   },
   resolve: {
     alias: {
       '@a2a-webcap/shared': path.resolve(__dirname, './packages/shared/src'),
       '@a2a-webcap/server': path.resolve(__dirname, './packages/server/src'),
       '@a2a-webcap/client': path.resolve(__dirname, './packages/client/src')
-    }
+    },
+    conditions: ['worker', 'import']
+  },
+  esbuild: {
+    target: 'es2022',
+    format: 'esm'
   }
 });
