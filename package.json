@@ -5,23 +5,18 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run clean && npm install && npm run build-packages",
-    "build-packages": "tsc --project packages/shared/tsconfig.json && tsc --project packages/server/tsconfig.json && tsc --project packages/client/tsconfig.json",
+    "build": "tsc -b",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint . --ext .ts",
-    "clean": "bash -c scripts/clean.sh",
-    "dev:server": "tsx packages/server/src/standalone-server.ts",
-    "demo:capnweb": "tsx examples/acp-server-example/session.ts"
+    "lint": "biome check --apply .",
+    "clean": "bash -c scripts/clean.sh"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
     "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^7.1.0",
-    "@typescript-eslint/parser": "^7.1.0",
     "@vitest/coverage-v8": "^4.0.8",
     "@vitest/ui": "^4.0.8",
-    "eslint": "^8.57.0",
     "tsx": "^4.20.6",
     "typescript": "^5.0.0",
     "vitest": "^4.0.8"

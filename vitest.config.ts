@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import path from 'path';
+import path from 'node:path';
 
 export default defineConfig({
   test: {
@@ -29,9 +29,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@a2a-webcap/shared': path.resolve(__dirname, './packages/shared/src'),
-      '@a2a-webcap/server': path.resolve(__dirname, './packages/server/src'),
-      '@a2a-webcap/client': path.resolve(__dirname, './packages/client/src')
+      '@a2a/types': path.resolve(__dirname, './packages/types/src'),
+      '@a2a/capnwebrpc': path.resolve(__dirname, './packages/capnwebrpc/src'),
+      'cloudflare:capnweb': path.resolve(__dirname, './packages/capnwebrpc/tests/helpers/capnweb-shim.ts')
     }
   }
 });
