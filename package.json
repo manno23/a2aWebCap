@@ -12,7 +12,7 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint . --ext .ts",
     "clean": "bash -c scripts/clean.sh",
-    "dev:server": "tsx packages/server/src/index.ts",
+    "dev:server": "tsx packages/server/src/standalone-server.ts",
     "demo:capnweb": "tsx examples/acp-server-example/session.ts"
   },
   "devDependencies": {
