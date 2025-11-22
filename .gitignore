@@ -23,4 +23,7 @@ coverage/
 # Opencode
 !.opencode/*
 .opencode/design
+.opencode/scripts
 
+
+.turbo/*
