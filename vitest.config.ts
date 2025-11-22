@@ -5,16 +5,16 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['packages/**/tests/**/*.test.ts', 'packages/**/tests/**/*.spec.ts'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.spec.ts'],
     exclude: ['node_modules', 'dist', 'examples'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov', 'json'],
-      include: ['packages/*/src/**/*.ts'],
+      include: ['src/**/*.ts'],
       exclude: [
-        'packages/*/src/**/*.test.ts',
-        'packages/*/src/**/*.spec.ts',
-        'packages/*/dist/**',
+        'src/**/*.test.ts',
+        'src/**/*.spec.ts',
+        'dist/**',
         'examples/**'
       ],
       thresholds: {
@@ -29,9 +29,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@a2a/types': path.resolve(__dirname, './packages/types/src'),
-      '@a2a/capnwebrpc': path.resolve(__dirname, './packages/capnwebrpc/src'),
-      'cloudflare:capnweb': path.resolve(__dirname, './packages/capnwebrpc/tests/helpers/capnweb-shim.ts')
+      '@a2a-webcap/shared': path.resolve(__dirname, './src/shared/types.ts'),
+      '@a2a-webcap/server': path.resolve(__dirname, './src/server'),
+      '@a2a-webcap/client': path.resolve(__dirname, './src/client')
     }
   }
 });

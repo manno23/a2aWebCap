@@ -1,18 +1,23 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "lib": ["ES2022"],
+    "target": "esnext",
+    "module": "nodenext",
+    "lib": ["esnext", "dom"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true
+    "moduleResolution": "nodenext",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "outDir": "./dist",
+    "declaration": true,
+    "types": ["node"],
+    "paths": {
+      "@a2a-webcap/shared": ["./src/shared/a2a.types.ts"],
+      "@a2a-webcap/server": ["./src/server"],
+      "@a2a-webcap/client": ["./src/client"]
+    }
   },
-  "files": [],
-  "references": [
-    { "path": "./packages/types" },
-    { "path": "./packages/capnwebrpc" }
-  ]
+  "include": ["./src/**/*.ts*", "./src/shared/google/**/*.ts"],
+  "exclude": ["node_modules", "**/*.test.ts"]
 }
