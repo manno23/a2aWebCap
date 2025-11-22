@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    "skipLibCheck": true
+  },
+  "include": ["src/index.ts"],
+  "exclude": ["src/shared/google/**/*", "src/shared/a2a.types.ts", "tests/**/*", "**/*.test.ts"]
+}

@@ -17,7 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "typechecking": "tsx packages/server/src/standalone-server.ts",
+    "typechecking": "npx tsc --noEmit",
     "build": "tsup"
   },
   "devDependencies": {

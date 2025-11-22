@@ -6,11 +6,11 @@
  */
 
 
-import { createLogger } from '@a2a-webcap/shared';
+import { createLogger } from '../shared/logger.js';
 import type { TaskManager, TaskUpdateEvent } from './task-manager.js';
 import type { TaskUpdateCallback } from './task-update-callback.js';
-import { TaskState } from '@a2a-webcap/shared';
-import type { Task, StatusUpdateEvent, ArtifactUpdateEvent } from '@a2a-webcap/shared';
+import { TaskState } from '../shared/a2a.types.js';
+import type { Task, TaskStatusUpdateEvent, TaskArtifactUpdateEvent } from '../shared/a2a.types.js';
 
 const log = createLogger('streaming-task');
 
@@ -60,15 +60,15 @@ export class StreamingTask {
     const currentTask = await this.taskManager.getTask(this.task.id);
 
     // Check if task is already in final state (for late subscribers)
-    const isFinal = this.isFinalTaskState(currentTask.status.state);
+    const isFinal = currentTask.status ? this.isFinalTaskState(currentTask.status.state) : false;
 
     // Send current task state immediately with correct final flag
     await this.sendStatusUpdate({
-      type: 'status',
       taskId: currentTask.id,
       contextId: currentTask.contextId,
       status: currentTask.status,
-      final: isFinal
+      final: isFinal,
+      metadata: {}
     });
   }
 
@@ -105,10 +105,10 @@ export class StreamingTask {
    */
   private isFinalTaskState(state: TaskState): boolean {
     const finalStates = [
-      TaskState.Completed,
-      TaskState.Canceled,
-      TaskState.Failed,
-      TaskState.Rejected
+      TaskState.TASK_STATE_COMPLETED,
+      TaskState.TASK_STATE_CANCELLED,
+      TaskState.TASK_STATE_FAILED,
+      TaskState.TASK_STATE_REJECTED
     ];
     return finalStates.includes(state);
   }
@@ -130,20 +130,22 @@ export class StreamingTask {
 
         // Send status update
         await this.sendStatusUpdate({
-          type: 'status',
           taskId: event.taskId,
           contextId: this.task.contextId,
           status: event.status,
-          final: isFinal
+          final: isFinal,
+          metadata: {}
         });
 
         // Send artifact update if present
         if (event.artifact) {
           await this.sendArtifactUpdate({
-            type: 'artifact',
             taskId: event.taskId,
             contextId: this.task.contextId,
-            artifact: event.artifact
+            artifact: event.artifact,
+            append: false,
+            lastChunk: true,
+            metadata: {}
           });
         }
 

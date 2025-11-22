@@ -7,9 +7,9 @@ import { EventEmitter } from 'events';
 import type { EventEmitter as EventEmitterType } from 'events';
 import { randomUUID } from 'crypto';
 type ToolStatus = string;
-interface ToolCall { callId: string; name: string; input: Record<string, any>; status: ToolStatus; result?: any; error?: string; timestamp: string; }
+export interface ToolCall { callId: string; name: string; input: Record<string, any>; status: ToolStatus; result?: any; error?: string; timestamp: string; }
 import { ToolRegistry, type ToolDefinition } from './tool-registry.js';
-import { createLogger } from '@a2a-webcap/shared'
+import { createLogger } from '../shared/logger.js'
 
 const log = createLogger('tool-executor');
 

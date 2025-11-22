@@ -10,8 +10,37 @@
 
 import * as jwt from './jwt-worker.js';
 import crypto from 'crypto';
-import { createLogger, type Logger } from '@a2a-webcap/shared';
-import type { AuthCredentials, AuthResult, Capability, CapabilitySet } from '@a2a-webcap/shared';
+import { createLogger, type Logger } from '../shared/logger.js';
+
+// Minimal type definitions for missing types - simplified for compilation
+interface Capability {
+  name: string;
+  resource: string;
+  actions?: string[];
+  resources?: string[];
+  expiresAt?: Date;
+}
+
+interface CapabilitySet {
+  capabilities: Capability[];
+  globalCapabilities?: Capability[];
+  taskCapabilities?: Capability[];
+}
+
+interface AuthCredentials {
+  type: 'jwt' | 'apikey' | 'oauth2' | 'bearer';
+  token: string;
+  apiKey?: string;
+}
+
+interface AuthResult {
+  authenticated: boolean;
+  userId?: string;
+  permissions?: string[];
+  capabilities?: CapabilitySet;
+  metadata?: Record<string, any>;
+  expiresAt?: Date;
+}
 
 const log = createLogger('auth-service');
 

@@ -1,11 +1,8 @@
 /* eslint-disable */
-import * as _m0 from "protobufjs/minimal";
-import { Observable } from "rxjs";
-import { map } from "rxjs/operators";
-import { Empty } from "./google/protobuf/empty";
+import Long from "long";
+import _m0 from "protobufjs/minimal";
 import { Struct } from "./google/protobuf/struct";
 import { Timestamp } from "./google/protobuf/timestamp";
-import Long = require("long");
 
 export const protobufPackage = "a2a.v1";
 
@@ -269,7 +266,7 @@ export interface FilePart {
     | undefined;
   /** The base64-encoded content of the file. */
   fileWithBytes?:
-    | Uint8Array
+    | Buffer
     | undefined;
   /** The media type of the file (e.g., "application/pdf"). */
   mediaType: string;
@@ -919,7 +916,7 @@ export interface ListTasksRequest {
    * Filter tasks updated after this timestamp (milliseconds since epoch).
    * Only tasks with a last updated time greater than or equal to this value will be returned.
    */
-  lastUpdatedAfter: number;
+  lastUpdatedAfter: string;
   /**
    * Whether to include artifacts in the returned tasks.
    * Defaults to false to reduce payload size.
@@ -1540,7 +1537,7 @@ export const FilePart = {
             break;
           }
 
-          message.fileWithBytes = reader.bytes();
+          message.fileWithBytes = reader.bytes() as Buffer;
           continue;
         case 3:
           if (tag !== 26) {
@@ -1568,7 +1565,7 @@ export const FilePart = {
   fromJSON(object: any): FilePart {
     return {
       fileWithUri: isSet(object.fileWithUri) ? globalThis.String(object.fileWithUri) : undefined,
-      fileWithBytes: isSet(object.fileWithBytes) ? bytesFromBase64(object.fileWithBytes) : undefined,
+      fileWithBytes: isSet(object.fileWithBytes) ? Buffer.from(bytesFromBase64(object.fileWithBytes)) : undefined,
       mediaType: isSet(object.mediaType) ? globalThis.String(object.mediaType) : "",
       name: isSet(object.name) ? globalThis.String(object.name) : "",
     };
@@ -5378,7 +5375,7 @@ function createBaseListTasksRequest(): ListTasksRequest {
     pageSize: undefined,
     pageToken: "",
     historyLength: undefined,
-    lastUpdatedAfter: 0,
+    lastUpdatedAfter: "0",
     includeArtifacts: undefined,
     metadata: undefined,
   };
@@ -5401,7 +5398,7 @@ export const ListTasksRequest = {
     if (message.historyLength !== undefined) {
       writer.uint32(40).int32(message.historyLength);
     }
-    if (message.lastUpdatedAfter !== 0) {
+    if (message.lastUpdatedAfter !== "0") {
       writer.uint32(48).int64(message.lastUpdatedAfter);
     }
     if (message.includeArtifacts !== undefined) {
@@ -5460,7 +5457,7 @@ export const ListTasksRequest = {
             break;
           }
 
-          message.lastUpdatedAfter = longToNumber(reader.int64() as Long);
+          message.lastUpdatedAfter = longToString(reader.int64() as Long);
           continue;
         case 7:
           if (tag !== 56) {
@@ -5492,7 +5489,7 @@ export const ListTasksRequest = {
       pageSize: isSet(object.pageSize) ? globalThis.Number(object.pageSize) : undefined,
       pageToken: isSet(object.pageToken) ? globalThis.String(object.pageToken) : "",
       historyLength: isSet(object.historyLength) ? globalThis.Number(object.historyLength) : undefined,
-      lastUpdatedAfter: isSet(object.lastUpdatedAfter) ? globalThis.Number(object.lastUpdatedAfter) : 0,
+      lastUpdatedAfter: isSet(object.lastUpdatedAfter) ? globalThis.String(object.lastUpdatedAfter) : "0",
       includeArtifacts: isSet(object.includeArtifacts) ? globalThis.Boolean(object.includeArtifacts) : undefined,
       metadata: isObject(object.metadata) ? object.metadata : undefined,
     };
@@ -5515,8 +5512,8 @@ export const ListTasksRequest = {
     if (message.historyLength !== undefined) {
       obj.historyLength = Math.round(message.historyLength);
     }
-    if (message.lastUpdatedAfter !== 0) {
-      obj.lastUpdatedAfter = Math.round(message.lastUpdatedAfter);
+    if (message.lastUpdatedAfter !== "0") {
+      obj.lastUpdatedAfter = message.lastUpdatedAfter;
     }
     if (message.includeArtifacts !== undefined) {
       obj.includeArtifacts = message.includeArtifacts;
@@ -5537,7 +5534,7 @@ export const ListTasksRequest = {
     message.pageSize = object.pageSize ?? undefined;
     message.pageToken = object.pageToken ?? "";
     message.historyLength = object.historyLength ?? undefined;
-    message.lastUpdatedAfter = object.lastUpdatedAfter ?? 0;
+    message.lastUpdatedAfter = object.lastUpdatedAfter ?? "0";
     message.includeArtifacts = object.includeArtifacts ?? undefined;
     message.metadata = object.metadata ?? undefined;
     return message;
@@ -6379,132 +6376,6 @@ export const ListTaskPushNotificationConfigResponse = {
   },
 };
 
-/** A2AService defines the operations of the A2A protocol. */
-export interface A2AService {
-  /** Send a message to the agent. */
-  SendMessage(request: SendMessageRequest): Promise<SendMessageResponse>;
-  /** SendStreamingMessage is a streaming version of SendMessage. */
-  SendStreamingMessage(request: SendMessageRequest): Observable<StreamResponse>;
-  /** Get the current state of a task from the agent. */
-  GetTask(request: GetTaskRequest): Promise<Task>;
-  /** List tasks with optional filtering and pagination. */
-  ListTasks(request: ListTasksRequest): Promise<ListTasksResponse>;
-  /** Cancel a task. */
-  CancelTask(request: CancelTaskRequest): Promise<Task>;
-  /**
-   * SubscribeToTask allows subscribing to task updates for tasks not in terminal state.
-   * Returns UnsupportedOperationError if task is in terminal state (completed, failed, cancelled, rejected).
-   */
-  SubscribeToTask(request: SubscribeToTaskRequest): Observable<StreamResponse>;
-  /** Set a push notification config for a task. */
-  SetTaskPushNotificationConfig(request: SetTaskPushNotificationConfigRequest): Promise<TaskPushNotificationConfig>;
-  /** Get a push notification config for a task. */
-  GetTaskPushNotificationConfig(request: GetTaskPushNotificationConfigRequest): Promise<TaskPushNotificationConfig>;
-  /** Get a list of push notifications configured for a task. */
-  ListTaskPushNotificationConfig(
-    request: ListTaskPushNotificationConfigRequest,
-  ): Promise<ListTaskPushNotificationConfigResponse>;
-  /** GetExtendedAgentCard returns the extended agent card for authenticated agents. */
-  GetExtendedAgentCard(request: GetExtendedAgentCardRequest): Promise<AgentCard>;
-  /** Delete a push notification config for a task. */
-  DeleteTaskPushNotificationConfig(request: DeleteTaskPushNotificationConfigRequest): Promise<Empty>;
-}
-
-export const A2AServiceServiceName = "a2a.v1.A2AService";
-export class A2AServiceClientImpl implements A2AService {
-  private readonly rpc: Rpc;
-  private readonly service: string;
-  constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || A2AServiceServiceName;
-    this.rpc = rpc;
-    this.SendMessage = this.SendMessage.bind(this);
-    this.SendStreamingMessage = this.SendStreamingMessage.bind(this);
-    this.GetTask = this.GetTask.bind(this);
-    this.ListTasks = this.ListTasks.bind(this);
-    this.CancelTask = this.CancelTask.bind(this);
-    this.SubscribeToTask = this.SubscribeToTask.bind(this);
-    this.SetTaskPushNotificationConfig = this.SetTaskPushNotificationConfig.bind(this);
-    this.GetTaskPushNotificationConfig = this.GetTaskPushNotificationConfig.bind(this);
-    this.ListTaskPushNotificationConfig = this.ListTaskPushNotificationConfig.bind(this);
-    this.GetExtendedAgentCard = this.GetExtendedAgentCard.bind(this);
-    this.DeleteTaskPushNotificationConfig = this.DeleteTaskPushNotificationConfig.bind(this);
-  }
-  SendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {
-    const data = SendMessageRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "SendMessage", data);
-    return promise.then((data) => SendMessageResponse.decode(_m0.Reader.create(data)));
-  }
-
-  SendStreamingMessage(request: SendMessageRequest): Observable<StreamResponse> {
-    const data = SendMessageRequest.encode(request).finish();
-    const result = this.rpc.serverStreamingRequest(this.service, "SendStreamingMessage", data);
-    return result.pipe(map((data) => StreamResponse.decode(_m0.Reader.create(data))));
-  }
-
-  GetTask(request: GetTaskRequest): Promise<Task> {
-    const data = GetTaskRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetTask", data);
-    return promise.then((data) => Task.decode(_m0.Reader.create(data)));
-  }
-
-  ListTasks(request: ListTasksRequest): Promise<ListTasksResponse> {
-    const data = ListTasksRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "ListTasks", data);
-    return promise.then((data) => ListTasksResponse.decode(_m0.Reader.create(data)));
-  }
-
-  CancelTask(request: CancelTaskRequest): Promise<Task> {
-    const data = CancelTaskRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "CancelTask", data);
-    return promise.then((data) => Task.decode(_m0.Reader.create(data)));
-  }
-
-  SubscribeToTask(request: SubscribeToTaskRequest): Observable<StreamResponse> {
-    const data = SubscribeToTaskRequest.encode(request).finish();
-    const result = this.rpc.serverStreamingRequest(this.service, "SubscribeToTask", data);
-    return result.pipe(map((data) => StreamResponse.decode(_m0.Reader.create(data))));
-  }
-
-  SetTaskPushNotificationConfig(request: SetTaskPushNotificationConfigRequest): Promise<TaskPushNotificationConfig> {
-    const data = SetTaskPushNotificationConfigRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "SetTaskPushNotificationConfig", data);
-    return promise.then((data) => TaskPushNotificationConfig.decode(_m0.Reader.create(data)));
-  }
-
-  GetTaskPushNotificationConfig(request: GetTaskPushNotificationConfigRequest): Promise<TaskPushNotificationConfig> {
-    const data = GetTaskPushNotificationConfigRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetTaskPushNotificationConfig", data);
-    return promise.then((data) => TaskPushNotificationConfig.decode(_m0.Reader.create(data)));
-  }
-
-  ListTaskPushNotificationConfig(
-    request: ListTaskPushNotificationConfigRequest,
-  ): Promise<ListTaskPushNotificationConfigResponse> {
-    const data = ListTaskPushNotificationConfigRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "ListTaskPushNotificationConfig", data);
-    return promise.then((data) => ListTaskPushNotificationConfigResponse.decode(_m0.Reader.create(data)));
-  }
-
-  GetExtendedAgentCard(request: GetExtendedAgentCardRequest): Promise<AgentCard> {
-    const data = GetExtendedAgentCardRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetExtendedAgentCard", data);
-    return promise.then((data) => AgentCard.decode(_m0.Reader.create(data)));
-  }
-
-  DeleteTaskPushNotificationConfig(request: DeleteTaskPushNotificationConfigRequest): Promise<Empty> {
-    const data = DeleteTaskPushNotificationConfigRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "DeleteTaskPushNotificationConfig", data);
-    return promise.then((data) => Empty.decode(_m0.Reader.create(data)));
-  }
-}
-
-interface Rpc {
-  request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;
-  clientStreamingRequest(service: string, method: string, data: Observable<Uint8Array>): Promise<Uint8Array>;
-  serverStreamingRequest(service: string, method: string, data: Uint8Array): Observable<Uint8Array>;
-  bidirectionalStreamingRequest(service: string, method: string, data: Observable<Uint8Array>): Observable<Uint8Array>;
-}
-
 function bytesFromBase64(b64: string): Uint8Array {
   if (globalThis.Buffer) {
     return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
@@ -6543,13 +6414,13 @@ export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function toTimestamp(date: Date): Timestamp {
-  const seconds = date.getTime() / 1_000;
+  const seconds = Math.trunc(date.getTime() / 1_000).toString();
   const nanos = (date.getTime() % 1_000) * 1_000_000;
   return { seconds, nanos };
 }
 
 function fromTimestamp(t: Timestamp): Date {
-  let millis = (t.seconds || 0) * 1_000;
+  let millis = (globalThis.Number(t.seconds) || 0) * 1_000;
   millis += (t.nanos || 0) / 1_000_000;
   return new globalThis.Date(millis);
 }
@@ -6564,11 +6435,8 @@ function fromJsonTimestamp(o: any): Date {
   }
 }
 
-function longToNumber(long: Long): number {
-  if (long.gt(globalThis.Number.MAX_SAFE_INTEGER)) {
-    throw new globalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
-  }
-  return long.toNumber();
+function longToString(long: Long) {
+  return long.toString();
 }
 
 if (_m0.util.Long !== Long) {

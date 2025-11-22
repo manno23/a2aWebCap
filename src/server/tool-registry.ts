@@ -3,8 +3,8 @@
  * Manages available tools, schemas, and permissions
  */
 
-import type { ToolCall, ToolStatus } from '@a2a-webcap/shared';
-import { createLogger } from '@a2a-webcap/shared';
+import type { ToolCall } from './tool-executor.js';
+import { createLogger } from '../shared/logger.js';
 
 const log = createLogger('tool-registry');
 
