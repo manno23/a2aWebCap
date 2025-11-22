@@ -21,4 +21,6 @@ coverage/
 *.d.ts.map
 
 # Opencode
-.opencode/
+!.opencode/*
+.opencode/design
+

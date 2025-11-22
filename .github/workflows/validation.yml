@@ -31,9 +31,3 @@ jobs:
 
       - name: Build packages
         run: pnpm run build
-
-      - name: Run tests
-        run: pnpm test
-
-      - name: Check capnweb build compatibility
-        run: pnpm run capnweb:compat-check

@@ -12,9 +12,12 @@ import type {
   Task,
   AgentCard,
   ListTasksResponse,
-  SendMessageRequest
-  
+  ListTasksRequest,
+  SendMessageRequest,
+  Role,
+  Part
 } from '../shared/a2a.types.ts';
+import { Role as RoleEnum, TaskState } from '../shared/a2a.types.js';
 
 export type MessageSendConfig = SendMessageRequest['configuration'];
 
@@ -155,7 +158,7 @@ export class A2AClient {
   /**
    * List tasks
    */
-  async listTasks(params: ListTasksResponse): Promise<SendMessageRequest> {
+  async listTasks(params: ListTasksRequest): Promise<ListTasksResponse> {
     return await this.sendRequest('listTasks', params);
   }
 
@@ -204,11 +207,15 @@ async function main() {
     console.log('\n[Client] Sending message...');
     const task = await client.sendMessage({
       messageId: randomUUID(),
-      role: 'user',
-      kind: 'message',
+      role: RoleEnum.ROLE_USER,
+      contextId: randomUUID(),
+      taskId: '',
       parts: [
-        { kind: 'text', text: 'Hello from the A2A client!' }
-      ]
+        { text: 'Hello from the A2A client!', metadata: {} }
+      ],
+      metadata: {},
+      extensions: [],
+      referenceTaskIds: []
     });
     console.log('[Client] Task created:', task);
 
@@ -222,7 +229,13 @@ async function main() {
 
     // List all tasks
     console.log('\n[Client] Listing all tasks...');
-    const tasksList = await client.listTasks({});
+    const tasksList = await client.listTasks({
+      contextId: '',
+      status: TaskState.TASK_STATE_UNSPECIFIED,
+      pageToken: '',
+      lastUpdatedAfter: '',
+      metadata: {}
+    });
     console.log('[Client] Total tasks:', tasksList.totalSize);
 
   } catch (error) {
