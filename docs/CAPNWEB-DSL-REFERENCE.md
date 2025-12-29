@@ -161,10 +161,10 @@ CapnWeb supports bidirectional streaming through callback `RpcTarget` instances.
 
 **DSL Concept:**
 ```typescript
-// Callback interface defined as RpcTarget
-abstract class TaskUpdateCallback extends RpcTarget {
-  abstract onStatusUpdate(event: StatusUpdateEvent): Promise<void>;
-  abstract onArtifactUpdate(event: ArtifactUpdateEvent): Promise<void>;
+// Callback interface for streaming updates
+interface TaskUpdateCallback {
+  onStatusUpdate(event: StatusUpdateEvent): Promise<void>;
+  onArtifactUpdate(event: ArtifactUpdateEvent): Promise<void>;
 }
 
 // Service method that accepts callback
@@ -186,7 +186,7 @@ class A2AService extends RpcTarget {
 }
 
 // Client implementation of callback
-class ClientCallback extends TaskUpdateCallback {
+class ClientCallback implements TaskUpdateCallback {
   async onStatusUpdate(event: StatusUpdateEvent): Promise<void> {
     console.log('Status:', event.status.state);
   }
@@ -838,11 +838,13 @@ await handle.write('Updated content');
 
 **TypeScript Service & Callback:**
 ```typescript
-abstract class TaskUpdateCallback extends RpcTarget {
-  abstract onStatusUpdate(event: StatusUpdateEvent): Promise<void>;
+// Callback interface for streaming updates
+interface TaskUpdateCallback {
+  onStatusUpdate(event: StatusUpdateEvent): Promise<void>;
+  onArtifactUpdate(event: ArtifactUpdateEvent): Promise<void>;
 }
 
-class A2AService extends RpcTarget {
+class A2AService {
   async sendMessageStreaming(
     message: Message,
     callback: TaskUpdateCallback
@@ -865,9 +867,13 @@ class A2AService extends RpcTarget {
 
 **Client Code:**
 ```typescript
-class MyCallback extends TaskUpdateCallback {
+class MyCallback implements TaskUpdateCallback {
   async onStatusUpdate(event: StatusUpdateEvent): Promise<void> {
     console.log('Task status:', event.status.state);
+  }
+  
+  async onArtifactUpdate(event: ArtifactUpdateEvent): Promise<void> {
+    console.log('Artifact:', event.artifact);
   }
 }
 
